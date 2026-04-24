@@ -569,6 +569,15 @@
   </div>
 
   <div class="block">
+    <h2>Ассортимент настоек</h2>
+    <p class="note">Группы и их составы печатаются на первой странице бара под списком сетов. Разделитель внутри списка — символ <code>·</code> (или любой текст по вкусу).</p>
+    <div id="infusion-sections-editor"></div>
+    <div class="toolbar">
+      <button id="btn-add-infusion-section">+ добавить группу</button>
+    </div>
+  </div>
+
+  <div class="block">
     <h2>Промо-страница бара</h2>
     <div class="row">
       <label style="flex:1"><input id="cfg-promo-enabled" type="checkbox"> включить первой страницей бара</label>
@@ -700,9 +709,32 @@ const DEFAULTS = {
   },
   notes: {
     bar_infusions: {
-      ru: `<strong>Сладкие:</strong> Лимончелло · Черная смородина · Вишня · Малина · Клубника-кизил · Персик · Дыня · Банан · Абрикос со специями · Фундук-морковь · Крем-брюле · Сливочная лимончелло · Арбуз · Ткемали. <strong>Пряные:</strong> Грейпфрут-можжевельник · Куркума-апельсин-кардамон · Тархун · Базилик · Мятная · Имбирь-тысячелистник-эвкалипт · Ромашка · Анис-тмин-фенхель · Имбирь-томат. <strong>Солёные:</strong> Паприка · Чеснок · Бородинский · Томатный · Свекла-кофе · Том-ям · Чили-барбарис · Хреновуха · Стручковая фасоль · Кукуруза · Шпроты.`,
-      en: `<strong>Sweet:</strong> Limoncello · Black currant · Cherry · Raspberry · Strawberry-cornelian cherry · Peach · Melon · Banana · Spiced apricot · Hazelnut-carrot · Crème brûlée · Creamy limoncello · Watermelon · Tkemali. <strong>Spicy:</strong> Grapefruit-juniper · Turmeric-orange-cardamom · Tarragon · Basil · Mint · Ginger-yarrow-eucalyptus · Chamomile · Anise-cumin-fennel · Ginger-tomato. <strong>Savory:</strong> Paprika · Garlic · Borodinsky · Tomato · Beet-coffee · Tom Yum · Chili-barberry · Horseradish · Green beans · Corn · Sprats.`,
-      ge: `<strong>ტკბილი:</strong> ლიმონჩელო · შავი მოცხარი · ალუბალი · ჟოლო · მარწყვი-შინდი · ატამი · ნესვი · ბანანი · გარგარი სანელებლებით · თხილი-სტაფილო · კრემ-ბრულე · ნაღებიანი ლიმონჩელო · საზამთრო · ტყემალი. <strong>სუნელოვანი:</strong> გრეიპფრუტი-ღვია · კურკუმა-ფორთოხალი-კარდამონი · ტარხუნა · რეჰანი · პიტნა · ჯანჯაფილი-ფარსმანდუკი-ევკალიპტი · გვირილა · ანისი-ძირა-კამა · ჯანჯაფილი-პომიდორი. <strong>მარილიანი:</strong> პაპრიკა · ნიორი · ბოროდინსკი · პომიდორი · ჭარხალი-ყავა · თომ-იამ · ჩილი-კოწახური · პირშუშხა · ცერცვი · სიმინდი · შპროტები.`
+      sections: [
+        {
+          title: { ru: "Сладкие", en: "Sweet", ge: "ტკბილი" },
+          items: {
+            ru: "Лимончелло · Черная смородина · Вишня · Малина · Клубника-кизил · Персик · Дыня · Банан · Абрикос со специями · Фундук-морковь · Крем-брюле · Сливочная лимончелло · Арбуз · Ткемали",
+            en: "Limoncello · Black currant · Cherry · Raspberry · Strawberry-cornelian cherry · Peach · Melon · Banana · Spiced apricot · Hazelnut-carrot · Crème brûlée · Creamy limoncello · Watermelon · Tkemali",
+            ge: "ლიმონჩელო · შავი მოცხარი · ალუბალი · ჟოლო · მარწყვი-შინდი · ატამი · ნესვი · ბანანი · გარგარი სანელებლებით · თხილი-სტაფილო · კრემ-ბრულე · ნაღებიანი ლიმონჩელო · საზამთრო · ტყემალი"
+          }
+        },
+        {
+          title: { ru: "Пряные", en: "Spicy", ge: "სუნელოვანი" },
+          items: {
+            ru: "Грейпфрут-можжевельник · Куркума-апельсин-кардамон · Тархун · Базилик · Мятная · Имбирь-тысячелистник-эвкалипт · Ромашка · Анис-тмин-фенхель · Имбирь-томат",
+            en: "Grapefruit-juniper · Turmeric-orange-cardamom · Tarragon · Basil · Mint · Ginger-yarrow-eucalyptus · Chamomile · Anise-cumin-fennel · Ginger-tomato",
+            ge: "გრეიპფრუტი-ღვია · კურკუმა-ფორთოხალი-კარდამონი · ტარხუნა · რეჰანი · პიტნა · ჯანჯაფილი-ფარსმანდუკი-ევკალიპტი · გვირილა · ანისი-ძირა-კამა · ჯანჯაფილი-პომიდორი"
+          }
+        },
+        {
+          title: { ru: "Солёные", en: "Savory", ge: "მარილიანი" },
+          items: {
+            ru: "Паприка · Чеснок · Бородинский · Томатный · Свекла-кофе · Том-ям · Чили-барбарис · Хреновуха · Стручковая фасоль · Кукуруза · Шпроты",
+            en: "Paprika · Garlic · Borodinsky · Tomato · Beet-coffee · Tom Yum · Chili-barberry · Horseradish · Green beans · Corn · Sprats",
+            ge: "პაპრიკა · ნიორი · ბოროდინსკი · პომიდორი · ჭარხალი-ყავა · თომ-იამ · ჩილი-კოწახური · პირშუშხა · ცერცვი · სიმინდი · შპროტები"
+          }
+        }
+      ]
     }
   },
   kitchen: [
@@ -975,6 +1007,44 @@ function renderConfig() {
       url: { loadUrl: "", saveUrl: "", method: "PUT", authHeader: "" },
       github: { owner: "", repo: "", branch: "main", path: "menu.json", token: "", lastSha: "" }
     };
+  }
+  // Migrate notes.bar_infusions from legacy {ru,en,ge: "<strong>X:</strong> ..."} string format
+  // to structured {sections: [{title:{ru,en,ge}, items:{ru,en,ge}}, ...]} so editor can edit it.
+  if (state.notes && state.notes.bar_infusions && !Array.isArray(state.notes.bar_infusions.sections)) {
+    const legacy = state.notes.bar_infusions;
+    const langs = ["ru", "en", "ge"];
+    const parsedByLang = {};
+    langs.forEach(l => {
+      const html = legacy[l] || "";
+      const re = /<strong>([^<]+?):<\/strong>([\s\S]*?)(?=<strong>|$)/g;
+      const sections = [];
+      let m;
+      while ((m = re.exec(html)) !== null) {
+        sections.push({
+          title: m[1].trim(),
+          items: m[2].replace(/\.\s*$/, "").trim()
+        });
+      }
+      parsedByLang[l] = sections;
+    });
+    const numSections = Math.max(parsedByLang.ru.length, parsedByLang.en.length, parsedByLang.ge.length);
+    const merged = [];
+    for (let i = 0; i < numSections; i++) {
+      merged.push({
+        title: {
+          ru: parsedByLang.ru[i]?.title || "",
+          en: parsedByLang.en[i]?.title || "",
+          ge: parsedByLang.ge[i]?.title || ""
+        },
+        items: {
+          ru: parsedByLang.ru[i]?.items || "",
+          en: parsedByLang.en[i]?.items || "",
+          ge: parsedByLang.ge[i]?.items || ""
+        }
+      });
+    }
+    state.notes.bar_infusions = { sections: merged.length ? merged : DEFAULTS.notes.bar_infusions.sections };
+    saveState();
   }
   if (!state.config.promo) {
     state.config.promo = {
@@ -1297,6 +1367,51 @@ function makeItemRow(menuKey, ci, ii, it) {
 function renderEditor() {
   renderEditorFor("kitchen");
   renderEditorFor("bar");
+  renderInfusionSectionsEditor();
+}
+
+function renderInfusionSectionsEditor() {
+  const cont = $("infusion-sections-editor");
+  if (!cont) return;
+  cont.innerHTML = "";
+  const note = state.notes.bar_infusions;
+  if (!note || !Array.isArray(note.sections)) return;
+  note.sections.forEach((sec, idx) => {
+    const block = document.createElement("div");
+    block.className = "category-block";
+    block.style.padding = "8px";
+    block.innerHTML = `
+      <div class="row" style="margin-bottom:4px">
+        <input data-l="ru" data-f="title" value="${esc(sec.title.ru || "")}" placeholder="Группа RU">
+        <input data-l="en" data-f="title" value="${esc(sec.title.en || "")}" placeholder="Group EN">
+        <input data-l="ge" data-f="title" value="${esc(sec.title.ge || "")}" placeholder="ჯგუფი GE">
+        <button class="xbtn" title="Удалить группу">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <textarea data-l="ru" data-f="items" placeholder="Список через · (RU)" rows="2" style="font-size:11px;padding:4px 6px;border:1px solid #d8d6ce;border-radius:3px;resize:vertical;width:100%;font-family:inherit;box-sizing:border-box">${esc(sec.items.ru || "")}</textarea>
+        <textarea data-l="en" data-f="items" placeholder="Items (EN)" rows="2" style="font-size:11px;padding:4px 6px;border:1px solid #d8d6ce;border-radius:3px;resize:vertical;width:100%;font-family:inherit;box-sizing:border-box">${esc(sec.items.en || "")}</textarea>
+        <textarea data-l="ge" data-f="items" placeholder="ნივთები (GE)" rows="2" style="font-size:11px;padding:4px 6px;border:1px solid #d8d6ce;border-radius:3px;resize:vertical;width:100%;font-family:inherit;box-sizing:border-box">${esc(sec.items.ge || "")}</textarea>
+      </div>
+    `;
+    cont.appendChild(block);
+    block.querySelectorAll("input,textarea").forEach(el => {
+      el.addEventListener("input", e => {
+        const l = e.target.dataset.l;
+        const f = e.target.dataset.f;
+        if (!sec[f]) sec[f] = {};
+        sec[f][l] = e.target.value;
+        saveState();
+        rerenderPreview();
+      });
+    });
+    block.querySelector(".xbtn").addEventListener("click", () => {
+      if (!confirm(`Удалить группу «${sec.title.ru || sec.title.en || ""}»?`)) return;
+      note.sections.splice(idx, 1);
+      saveState();
+      renderInfusionSectionsEditor();
+      rerenderPreview();
+    });
+  });
 }
 
 function esc(s) { return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
@@ -1555,9 +1670,21 @@ function buildCategoryTitleHtml(cat, lang) {
 }
 
 function buildCategoryNoteHtml(cat, lang) {
-  if (cat.noteKey && state.notes[cat.noteKey] && state.notes[cat.noteKey][lang]) {
-    return `<div class="menu-note">${state.notes[cat.noteKey][lang]}</div>`;
+  if (!cat.noteKey) return "";
+  const note = state.notes && state.notes[cat.noteKey];
+  if (!note) return "";
+  // Structured (preferred): note.sections = [{title:{ru,en,ge}, items:{ru,en,ge}}, ...]
+  if (Array.isArray(note.sections) && note.sections.length) {
+    const html = note.sections.map(s => {
+      const title = (s.title && (s.title[lang] || s.title.ru)) || "";
+      const items = (s.items && (s.items[lang] || s.items.ru)) || "";
+      if (!title && !items) return "";
+      return `<strong>${esc(title)}:</strong> ${esc(items)}`;
+    }).filter(Boolean).join(" ");
+    return html ? `<div class="menu-note">${html}</div>` : "";
   }
+  // Legacy: raw HTML strings keyed by language
+  if (note[lang]) return `<div class="menu-note">${note[lang]}</div>`;
   return "";
 }
 
@@ -1722,9 +1849,7 @@ function buildPage(menuKey, lang, cats, pageIdx, includePromo) {
         </div>`;
     });
     // optional note (for infusions) comes AFTER items so reader sees prices first, then the flavour assortment
-    if (cat.noteKey && state.notes[cat.noteKey] && state.notes[cat.noteKey][lang]) {
-      categoriesHtml += `<div class="menu-note">${state.notes[cat.noteKey][lang]}</div>`;
-    }
+    categoriesHtml += buildCategoryNoteHtml(cat, lang);
   });
   // Promo block goes at the bottom of the first bar page, below the infusion assortment
   if (includePromo && cfg.promo && cfg.promo.enabled) {
@@ -1812,12 +1937,24 @@ function renderAllPages() {
   $("pages").innerHTML = html;
   // render QR codes
   document.querySelectorAll(".qr-slot").forEach(slot => {
-    const url = slot.dataset.url || "";
+    const url = (slot.dataset.url || "").trim();
+    if (!url) return;
+    if (!window.QRCode) {
+      console.error("[QR] qrcode.min.js не загрузился — проверьте сеть/блокировку CDN");
+      slot.innerHTML = '<div style="font-size:8pt;color:#a12;font-style:italic">QR-библиотека не загрузилась</div>';
+      return;
+    }
     const c = document.createElement("canvas");
     slot.appendChild(c);
-    if (window.QRCode && url) {
-      QRCode.toCanvas(c, url, { margin: 1, width: 120, color: { dark: "#0a0a0a", light: "#ffffff" } }, () => {});
-    }
+    QRCode.toCanvas(c, url, {
+      margin: 1, width: 256,
+      color: { dark: "#0a0a0a", light: "#ffffff" }
+    }, err => {
+      if (err) {
+        console.error("[QR] ошибка:", err);
+        slot.innerHTML = '<div style="font-size:8pt;color:#a12;font-style:italic">QR ошибка: ' + (err.message || err) + '</div>';
+      }
+    });
   });
 }
 
@@ -2255,6 +2392,22 @@ function wire() {
   });
 
   // poster integration removed from UI — bindings deleted
+
+  // infusion sections editor
+  const addBtn = $("btn-add-infusion-section");
+  if (addBtn) {
+    addBtn.addEventListener("click", () => {
+      if (!state.notes.bar_infusions) state.notes.bar_infusions = { sections: [] };
+      if (!Array.isArray(state.notes.bar_infusions.sections)) state.notes.bar_infusions.sections = [];
+      state.notes.bar_infusions.sections.push({
+        title: { ru: "Новая группа", en: "New group", ge: "ახალი ჯგუფი" },
+        items: { ru: "", en: "", ge: "" }
+      });
+      saveState();
+      renderInfusionSectionsEditor();
+      rerenderPreview();
+    });
+  }
 
   // keyboard
   document.addEventListener("keydown", e => {
