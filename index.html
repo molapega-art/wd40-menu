@@ -1,0 +1,2299 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Генератор меню · Советский прейскурант</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Caveat:wght@500;600;700&family=Kalam:wght@400;700&family=Noto+Serif+Georgian:wght@400;600;700&family=Noto+Sans+Georgian:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+  /* =============================================================
+     APP CHROME (editor UI — скрывается при печати)
+     ============================================================= */
+  :root {
+    --ink-blue: #1a3a8a;
+    --paper: #fefdf8;
+    --rule: #1a1a1a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #eceae3;
+    color: #222;
+    font-size: 13px;
+  }
+  .app { display: grid; grid-template-columns: 420px 1fr; height: 100vh; overflow: hidden; }
+  .editor {
+    background: #fff; border-right: 1px solid #ccc;
+    overflow-y: auto; padding: 16px;
+  }
+  .preview {
+    overflow-y: auto; padding: 24px; background: #eceae3;
+  }
+  .editor h1 { font-size: 15px; margin: 0 0 4px; }
+  .editor .sub { color: #666; font-size: 11px; margin: 0 0 16px; }
+  .block { background: #f7f6f1; border: 1px solid #d8d6ce; border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+  .block h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px; color: #555; }
+  .row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .row label { flex: 0 0 80px; font-size: 11px; color: #666; }
+  .row input, .row select, .row textarea {
+    flex: 1; font-size: 12px; padding: 5px 7px;
+    border: 1px solid #c8c6bd; border-radius: 4px; background: #fff; min-width: 0;
+  }
+  .row input[type="number"] { max-width: 80px; }
+  button {
+    font: inherit; font-size: 12px;
+    padding: 6px 12px; border: 1px solid #c8c6bd;
+    background: #fff; border-radius: 4px; cursor: pointer;
+  }
+  button:hover { background: #f0efe8; }
+  button.primary { background: var(--ink-blue); color: #fff; border-color: var(--ink-blue); }
+  button.primary:hover { background: #142c66; }
+  button.danger { color: #a12; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+  .tabs button { flex: 1; }
+  .tabs button.active { background: var(--ink-blue); color: #fff; border-color: var(--ink-blue); }
+  .toolbar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .category-block { border: 1px dashed #bbb; border-radius: 5px; padding: 8px; margin-bottom: 10px; background: #fff; }
+  .category-block > .cat-head { display: flex; gap: 4px; align-items: center; margin-bottom: 6px; }
+  .category-block > .cat-head input { flex: 1; font-weight: 600; font-size: 12px; }
+  .item-row { display: grid; grid-template-columns: 1fr 1fr 1fr 60px 60px 20px; gap: 4px; margin-bottom: 3px; align-items: center; }
+  .item-row input { font-size: 11px; padding: 3px 5px; border: 1px solid #d8d6ce; border-radius: 3px; min-width: 0; }
+  .item-row .xbtn { background: none; border: none; color: #a66; cursor: pointer; padding: 0; font-size: 14px; line-height: 1; }
+  .item-row .xbtn:hover { color: #a12; }
+  .item-head { display: grid; grid-template-columns: 1fr 1fr 1fr 60px 60px 20px; gap: 4px; font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .note { font-size: 10px; color: #888; margin: 4px 0 0; }
+  .status { font-size: 11px; color: #555; margin: 6px 0; min-height: 14px; }
+  .status.err { color: #a12; }
+  .status.ok { color: #272; }
+  details { margin-top: 6px; }
+  summary { cursor: pointer; font-size: 11px; color: #666; padding: 4px 0; }
+  .lang-tabs { display: flex; gap: 4px; margin-bottom: 12px; justify-content: center; }
+  .lang-tabs button { min-width: 60px; }
+  .lang-tabs button.active { background: var(--ink-blue); color: #fff; border-color: var(--ink-blue); }
+  .action-bar { position: sticky; top: 0; background: #fff; padding: 10px 0; margin: -16px -16px 12px; padding: 12px 16px; border-bottom: 1px solid #ddd; z-index: 10; display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* =============================================================
+     MENU PAGE (что печатается)
+     ============================================================= */
+  .menu-page {
+    background: var(--paper);
+    width: 210mm; height: 297mm;       /* STRICT A4 */
+    margin: 0 auto 20px;
+    padding: 14mm 16mm;
+    box-sizing: border-box;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+    color: #171717;
+    font-family: 'PT Serif', 'Noto Serif Georgian', serif;
+    position: relative;
+    page-break-after: always;
+    overflow: hidden;
+  }
+  .menu-page.geo { font-family: 'Noto Serif Georgian', 'PT Serif', serif; }
+
+  .menu-frame {
+    height: 100%;
+    border: 2px solid var(--rule);
+    padding: 8mm 7mm 10mm;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+  }
+  .menu-frame::before, .menu-frame::after {
+    content: ""; position: absolute; left: 3px; right: 3px;
+    border-top: 1px solid var(--rule);
+    top: 3px;
+  }
+  .menu-frame::after { top: auto; bottom: 3px; border-top: none; border-bottom: 1px solid var(--rule); }
+
+  .ministry-header {
+    text-align: center;
+    padding: 1mm 0 3mm;
+    line-height: 1.3;
+  }
+  .ministry-header .country {
+    font-size: 11pt;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    padding-bottom: 1mm;
+  }
+  .ministry-header .ministry {
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .ministry-header .restaurant {
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding-bottom: 2mm;
+    border-bottom: 2.5px solid var(--rule);
+  }
+  .mtitle {
+    text-align: center;
+    font-size: 30pt;
+    font-weight: 700;
+    letter-spacing: 10px;
+    margin: 3mm 0 1mm;
+    text-transform: uppercase;
+  }
+  .msub {
+    text-align: center;
+    font-style: italic;
+    font-size: 11pt;
+    margin: 0 0 4mm;
+    padding-bottom: 3mm;
+    border-bottom: 3px double var(--rule);
+    letter-spacing: 1px;
+  }
+  .msub.empty { border-bottom: 3px double var(--rule); padding-bottom: 0; margin-bottom: 4mm; height: 0; }
+  .mcols {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0;
+    font-size: 8.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 0 0 2mm;
+    border-bottom: 1.5px solid var(--rule);
+    margin-bottom: 3mm;
+  }
+  .mcols .c1 { padding: 0 3mm; }
+  .mcols .c2, .mcols .c3 {
+    min-width: 22mm;
+    text-align: center;
+    border-left: 1.2px solid var(--rule);
+    padding: 0 3mm;
+  }
+
+  .category-title {
+    text-align: center;
+    font-weight: 700;
+    font-size: 12pt;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    padding: 4mm 0 1.5mm;
+    position: relative;
+  }
+  .category-title::before, .category-title::after {
+    content: "◆"; font-size: 8pt; margin: 0 8px; vertical-align: middle;
+  }
+
+  .m-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0;
+    align-items: baseline;
+    font-size: 10.5pt;
+    line-height: 1.35;
+    padding: 0.3mm 0;
+  }
+  .m-item .name {
+    white-space: nowrap;
+    overflow: hidden;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 0 3mm;
+  }
+  .m-item .name .txt { flex: 0 0 auto; }
+  .m-item .name .dots {
+    flex: 1;
+    border-bottom: 1.5px dotted #111;
+    height: 0.5em;
+    min-width: 30px;
+    margin: 0 4px 3px;
+  }
+  .m-item .portion, .m-item .price {
+    font-family: 'Caveat', 'Kalam', cursive;
+    color: var(--ink-blue);
+    font-size: 17pt;
+    font-weight: 600;
+    min-width: 22mm;
+    text-align: center;
+    line-height: 1;
+    border-left: 1.2px solid var(--rule);
+    padding: 0 3mm;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .m-item .portion .ink, .m-item .price .ink {
+    display: inline-block;
+  }
+
+  .menu-note {
+    font-size: 11pt;
+    font-style: italic;
+    padding: 3mm 6mm 4mm;
+    color: #222;
+    columns: 3;
+    column-gap: 6mm;
+    margin: 3mm 0 2mm;
+    line-height: 1.45;
+  }
+  .menu-note strong {
+    color: var(--ink-blue);
+    font-style: normal;
+    font-weight: 700;
+    font-size: 12.5pt;
+    letter-spacing: 1px;
+    display: block;
+    padding-top: 1.5mm;
+    break-after: avoid;
+  }
+  .menu-note strong:first-child { padding-top: 0; }
+
+  /* ==== INLINE PROMO BLOCK (inside bar page, after infusions) ==== */
+  .promo-inline {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8mm;
+    align-items: center;
+    margin: 6mm 4mm 4mm;
+    padding: 6mm 8mm;
+    border: 2.5px solid var(--ink-blue);
+    border-radius: 3mm;
+    background: var(--paper);
+    position: relative;
+  }
+  .promo-inline::before, .promo-inline::after {
+    content: "★";
+    position: absolute;
+    top: -9px; background: var(--paper);
+    color: var(--ink-blue); font-size: 13pt;
+    padding: 0 5px; line-height: 18px;
+  }
+  .promo-inline::before { left: 10mm; }
+  .promo-inline::after { right: 10mm; }
+  .promo-left { text-align: center; }
+  .promo-banner-inline {
+    font-family: 'PT Serif', serif;
+    font-weight: 700;
+    font-size: 22pt;
+    letter-spacing: 12px;
+    color: var(--ink-blue);
+    text-transform: uppercase;
+    margin: 0 0 3mm;
+    padding-bottom: 2mm;
+    border-bottom: 2.5px dashed var(--ink-blue);
+  }
+  .promo-headline-inline {
+    font-family: 'PT Serif', serif;
+    font-size: 18pt;
+    font-weight: 700;
+    margin: 0 0 3mm;
+    line-height: 1.25;
+  }
+  .slot-machine-inline {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2mm;
+    margin: 2mm 0 3mm;
+  }
+  .slot-reel {
+    width: 12mm; height: 18mm;
+    background: #fffdf4;
+    border: 2px solid #3a2a10;
+    border-top: 4px solid #1a1a1a;
+    border-bottom: 4px solid #1a1a1a;
+    border-radius: 1.5mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'PT Serif', serif;
+    font-weight: 700;
+    font-size: 24pt;
+    color: var(--ink-blue);
+    line-height: 1;
+  }
+  .slot-reel.jackpot { color: #b5272a; }
+  .slot-sep {
+    font-family: 'PT Serif', serif;
+    font-size: 22pt;
+    font-weight: 700;
+    color: #8a6c2b;
+    padding: 0 2mm;
+    line-height: 1;
+  }
+  .promo-subtitle-inline {
+    font-family: 'PT Serif', serif;
+    font-style: italic;
+    font-size: 13pt;
+    color: #333;
+    margin: 0;
+    line-height: 1.35;
+  }
+  .promo-qr-inline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2mm;
+  }
+  .promo-qr-inline canvas, .promo-qr-inline img {
+    width: 36mm; height: 36mm;
+    display: block;
+  }
+  .promo-qr-inline .cap {
+    font-family: 'PT Serif', serif;
+    font-style: italic;
+    font-size: 9.5pt;
+    color: #444;
+    max-width: 40mm;
+    line-height: 1.3;
+    text-align: center;
+  }
+
+  .stamp-seal {
+    position: absolute;
+    top: 6mm; right: 6mm;
+    transform-origin: top right;
+  }
+  .stamp-seal svg { width: 100%; height: 100%; display: block; }
+  .stamp-seal .logo-in.tint {
+    filter: brightness(0) saturate(100%) invert(16%) sepia(93%) saturate(2500%) hue-rotate(218deg) brightness(96%) contrast(99%);
+  }
+
+  /* ornaments */
+  .stamp {
+    position: absolute;
+    top: 6mm; right: 6mm;
+    width: 22mm; height: 22mm;
+    border: 2px solid var(--ink-blue);
+    border-radius: 50%;
+    color: var(--ink-blue);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Caveat', cursive;
+    font-size: 9pt;
+    font-weight: 700;
+    text-align: center;
+    transform: rotate(-8deg);
+    opacity: 0.7;
+    line-height: 1.1;
+    padding: 2mm;
+  }
+
+  /* =============================================================
+     PRINT
+     ============================================================= */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  @media print {
+    body { background: #fff; }
+    .editor, .lang-tabs, .action-bar { display: none !important; }
+    .preview { overflow: visible; padding: 0; background: #fff; }
+    .app { display: block; height: auto; }
+    .menu-page {
+      box-shadow: none; margin: 0;
+      width: 210mm; height: 297mm;
+      page-break-after: always;
+    }
+    .menu-page:last-child { page-break-after: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ========================== EDITOR ========================== -->
+<aside class="editor">
+  <div class="action-bar">
+    <button class="primary" id="btn-print">🖨️ Печать / Сохранить PDF</button>
+    <button id="btn-save">💾 Сохранить JSON</button>
+    <button id="btn-load">📂 Загрузить JSON</button>
+    <button id="btn-reset" class="danger">↺ Сброс</button>
+    <input type="file" id="file-load" accept=".json" hidden>
+  </div>
+
+  <h1>Генератор меню</h1>
+  <p class="sub">Советский прейскурант · RU / EN / GE</p>
+
+  <div class="block">
+    <h2>Общие настройки</h2>
+    <div class="row"><label>Заведение</label><input id="cfg-name" placeholder="WD-40"></div>
+    <div class="row"><label>QR ссылка</label><input id="cfg-qr" placeholder="https://instagram.com/..."></div>
+    <div class="row"><label>Валюта</label><input id="cfg-currency" value="₾" style="max-width:60px"><label style="flex:0 0 auto;color:#888">символ рядом с ценой</label></div>
+  </div>
+
+  <div class="block">
+    <h2>Шапка (министерство)</h2>
+    <details open>
+      <summary>RU</summary>
+      <div class="row"><label>Строка 1</label><input id="cfg-min-ru-0" placeholder="ГРУЗИЯ"></div>
+      <div class="row"><label>Строка 2</label><input id="cfg-min-ru-1" placeholder="МИНИСТЕРСТВО…"></div>
+      <div class="row"><label>Строка 3</label><input id="cfg-min-ru-2" placeholder="РЕСТОРАН…"></div>
+    </details>
+    <details>
+      <summary>EN</summary>
+      <div class="row"><label>Line 1</label><input id="cfg-min-en-0"></div>
+      <div class="row"><label>Line 2</label><input id="cfg-min-en-1"></div>
+      <div class="row"><label>Line 3</label><input id="cfg-min-en-2"></div>
+    </details>
+    <details>
+      <summary>GE</summary>
+      <div class="row"><label>ხაზი 1</label><input id="cfg-min-ge-0"></div>
+      <div class="row"><label>ხაზი 2</label><input id="cfg-min-ge-1"></div>
+      <div class="row"><label>ხაზი 3</label><input id="cfg-min-ge-2"></div>
+    </details>
+  </div>
+
+  <div class="block">
+    <h2>Заголовок</h2>
+    <details open>
+      <summary>RU — «ПРЕЙСКУРАНТ»</summary>
+      <div class="row"><label>Основной</label><input id="cfg-title-ru-h1" placeholder="ПРЕЙСКУРАНТ"></div>
+      <div class="row"><label>Кухня, подзаг.</label><input id="cfg-title-ru-h2-kitchen" placeholder="порционных блюд"></div>
+      <div class="row"><label>Бар, подзаг.</label><input id="cfg-title-ru-h2-bar" placeholder="буфетной продукции"></div>
+    </details>
+    <details>
+      <summary>EN — «MENU»</summary>
+      <div class="row"><label>Main</label><input id="cfg-title-en-h1" placeholder="MENU"></div>
+      <div class="row"><label>Kitchen sub</label><input id="cfg-title-en-h2-kitchen"></div>
+      <div class="row"><label>Bar sub</label><input id="cfg-title-en-h2-bar"></div>
+    </details>
+    <details>
+      <summary>GE — «მენიუ»</summary>
+      <div class="row"><label>მთავარი</label><input id="cfg-title-ge-h1" placeholder="მენიუ"></div>
+      <div class="row"><label>სამზარეულო</label><input id="cfg-title-ge-h2-kitchen"></div>
+      <div class="row"><label>ბარი</label><input id="cfg-title-ge-h2-bar"></div>
+    </details>
+  </div>
+
+  <div class="block">
+    <h2>Автоперевод</h2>
+    <div class="row"><label>Провайдер</label>
+      <select id="cfg-provider">
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="openai">OpenAI</option>
+      </select>
+    </div>
+    <div class="row"><label>API ключ</label><input id="cfg-apikey" type="password" placeholder="sk-ant-... или sk-..."></div>
+    <div class="row"><label>Модель</label>
+      <select id="cfg-model"></select>
+    </div>
+    <p class="note" id="provider-note">Ключ хранится только в вашем браузере (localStorage). Обращение идёт напрямую к API провайдера.</p>
+    <div class="toolbar">
+      <button id="btn-translate-empty">Перевести пустые</button>
+      <button id="btn-translate-all">Перевести всё</button>
+    </div>
+    <div class="status" id="translate-status"></div>
+  </div>
+
+  <div class="block">
+    <h2>Логотип / штамп</h2>
+    <div class="row"><label>Штамп</label>
+      <input id="cfg-stamp-file" type="file" accept="image/svg+xml,image/png,image/jpeg" style="font-size:11px">
+      <button id="btn-stamp-clear" class="danger" style="flex:0 0 auto" title="Удалить">×</button>
+    </div>
+    <div class="row"><label>Размер</label>
+      <input id="cfg-stamp-size" type="number" value="38" min="20" max="80" style="max-width:70px">
+      <label style="flex:0 0 auto;color:#888">мм (диаметр)</label>
+    </div>
+    <div class="row"><label>Поворот</label>
+      <input id="cfg-stamp-rot" type="number" value="-8" min="-45" max="45" style="max-width:70px">
+      <label style="flex:0 0 auto;color:#888">°</label>
+    </div>
+    <div class="row"><label>Прозрачность</label>
+      <input id="cfg-stamp-opacity" type="range" min="20" max="100" value="80" step="5">
+      <span id="cfg-stamp-opacity-val" style="flex:0 0 auto;color:#666;min-width:30px">80%</span>
+    </div>
+    <div class="row"><label>Тонировать</label>
+      <label style="flex:1;font-size:11px"><input id="cfg-stamp-tint" type="checkbox"> в синий цвет чернил (для чёрных SVG/PNG)</label>
+    </div>
+    <div class="row" style="align-items:flex-start">
+      <label>Превью</label>
+      <div id="stamp-preview" style="flex:1;min-height:60px;background:#fff;border:1px dashed #ccc;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;padding:6px">нет файла</div>
+    </div>
+    <p class="note">SVG — идеально. PNG с прозрачным фоном 600×600+. Если не загружен, рисуется текстовый штамп «УТВЕРЖДАЮ».</p>
+  </div>
+
+  <div class="block">
+    <h2>Синхронизация меню (URL / GitHub)</h2>
+    <div class="row"><label>Режим</label>
+      <select id="cfg-sync-mode" style="flex:1">
+        <option value="off">Выключено</option>
+        <option value="url">URL (любой HTTP endpoint)</option>
+        <option value="github">GitHub Contents API</option>
+      </select>
+    </div>
+    <div id="sync-url-fields" style="display:none">
+      <div class="row"><label>Load URL</label><input id="cfg-sync-url-load" placeholder="https://raw.githubusercontent.com/.../menu.json"></div>
+      <div class="row"><label>Save URL</label><input id="cfg-sync-url-save" placeholder="https://api.jsonbin.io/v3/b/BIN_ID"></div>
+      <div class="row"><label>Метод</label>
+        <select id="cfg-sync-url-method" style="max-width:90px">
+          <option>PUT</option><option>POST</option><option>PATCH</option>
+        </select>
+      </div>
+      <div class="row"><label>Auth header</label><input id="cfg-sync-url-auth" type="password" placeholder="X-Master-Key: $2a$10$..."></div>
+      <p class="note">Формат: <code>Имя-Заголовка: значение</code>. Примеры — JSONBin: <code>X-Master-Key: ...</code>; свой Cloudflare Worker: <code>Authorization: Bearer ...</code></p>
+    </div>
+    <div id="sync-github-fields" style="display:none">
+      <div class="row"><label>Owner</label><input id="cfg-sync-gh-owner" placeholder="your-username"></div>
+      <div class="row"><label>Repo</label><input id="cfg-sync-gh-repo" placeholder="wd40-menu"></div>
+      <div class="row"><label>Branch</label><input id="cfg-sync-gh-branch" placeholder="main"></div>
+      <div class="row"><label>Path</label><input id="cfg-sync-gh-path" placeholder="menu.json"></div>
+      <div class="row"><label>PAT</label><input id="cfg-sync-gh-token" type="password" placeholder="github_pat_..."></div>
+      <p class="note">Создайте Personal Access Token: GitHub → Settings → Developer settings → Personal access tokens → Fine-grained → нужно разрешение «Contents: Read and write» на ваш репо.</p>
+    </div>
+    <div class="row">
+      <label style="flex:1"><input id="cfg-sync-autoload" type="checkbox"> автозагрузка при открытии приложения</label>
+    </div>
+    <p class="note">⚠ Автозагрузка перезапишет ваши локальные правки данными с сервера. API-ключи (Claude, OpenAI, PAT, токен Poster) остаются локально — на сервер они не уходят.</p>
+    <div class="toolbar">
+      <button id="btn-sync-load">↓ Загрузить</button>
+      <button id="btn-sync-save" class="primary">↑ Сохранить</button>
+    </div>
+    <div class="status" id="sync-status"></div>
+  </div>
+
+<div class="block">
+    <h2>Имитация почерка</h2>
+    <div class="row"><label>Цвет чернил</label><input id="cfg-ink" type="color" value="#1a3a8a" style="max-width:60px"></div>
+    <div class="row"><label>Наклон ±°</label><input id="cfg-tilt" type="number" value="4" min="0" max="15"></div>
+    <div class="row"><label>Размер ±%</label><input id="cfg-size" type="number" value="10" min="0" max="30"></div>
+    <div class="row"><label>Jitter ±px</label><input id="cfg-jitter" type="number" value="1.5" min="0" max="5" step="0.5"></div>
+    <div class="toolbar">
+      <button id="btn-reshuffle">🎲 Перемешать почерк</button>
+    </div>
+  </div>
+
+  <div class="block">
+    <h2>Промо-страница бара</h2>
+    <div class="row">
+      <label style="flex:1"><input id="cfg-promo-enabled" type="checkbox"> включить первой страницей бара</label>
+    </div>
+    <div class="row"><label>Счётчик</label>
+      <input id="cfg-promo-counter-now" style="max-width:70px" maxlength="3">
+      <label style="flex:0 0 auto;color:#888">/</label>
+      <input id="cfg-promo-counter-goal" style="max-width:70px" maxlength="3">
+      <label style="flex:0 0 auto;color:#888">на барабане</label>
+    </div>
+    <details open>
+      <summary>Тексты — RU</summary>
+      <div class="row"><label>Баннер</label><input id="cfg-promo-banner-ru" placeholder="АКЦИЯ"></div>
+      <div class="row"><label>Заголовок</label><input id="cfg-promo-headline-ru"></div>
+      <div class="row"><label>Подзаголовок</label><input id="cfg-promo-subtitle-ru"></div>
+      <div class="row"><label>Подпись QR</label><input id="cfg-promo-qr-ru"></div>
+    </details>
+    <details>
+      <summary>Texts — EN</summary>
+      <div class="row"><label>Banner</label><input id="cfg-promo-banner-en"></div>
+      <div class="row"><label>Headline</label><input id="cfg-promo-headline-en"></div>
+      <div class="row"><label>Subtitle</label><input id="cfg-promo-subtitle-en"></div>
+      <div class="row"><label>QR caption</label><input id="cfg-promo-qr-en"></div>
+    </details>
+    <details>
+      <summary>ტექსტი — GE</summary>
+      <div class="row"><label>ბანერი</label><input id="cfg-promo-banner-ge"></div>
+      <div class="row"><label>სათაური</label><input id="cfg-promo-headline-ge"></div>
+      <div class="row"><label>ქვესათაური</label><input id="cfg-promo-subtitle-ge"></div>
+      <div class="row"><label>QR წარწერა</label><input id="cfg-promo-qr-ge"></div>
+    </details>
+  </div>
+
+  <div class="block">
+    <h2>Какие страницы печатать</h2>
+    <div class="row">
+      <label><input type="checkbox" id="pg-kitchen-ru" checked> Кухня RU</label>
+      <label><input type="checkbox" id="pg-kitchen-en" checked> Кухня EN</label>
+      <label><input type="checkbox" id="pg-kitchen-ge" checked> Кухня GE</label>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="pg-bar-ru" checked> Бар RU</label>
+      <label><input type="checkbox" id="pg-bar-en" checked> Бар EN</label>
+      <label><input type="checkbox" id="pg-bar-ge" checked> Бар GE</label>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="kitchen">Кухня</button>
+    <button class="tab-btn" data-tab="bar">Бар</button>
+  </div>
+
+  <div id="editor-kitchen" class="tab-panel"></div>
+  <div id="editor-bar" class="tab-panel" style="display:none"></div>
+
+  <p class="note">Подсказка: Ctrl+S / ⌘S — сохранить JSON. Ctrl+P — печать.</p>
+</aside>
+
+<!-- ========================== PREVIEW ========================== -->
+<main class="preview">
+  <div class="lang-tabs" id="lang-tabs">
+    <button data-menu="kitchen" data-lang="ru" class="active">Кухня · RU</button>
+    <button data-menu="kitchen" data-lang="en">Kitchen · EN</button>
+    <button data-menu="kitchen" data-lang="ge">სამზარეულო · GE</button>
+    <button data-menu="bar" data-lang="ru">Бар · RU</button>
+    <button data-menu="bar" data-lang="en">Bar · EN</button>
+    <button data-menu="bar" data-lang="ge">ბარი · GE</button>
+  </div>
+  <div id="pages"></div>
+</main>
+
+</div>
+
+<script>
+/* ==========================================================================
+   DEFAULT DATA — перенесено из вашего Google Docs
+   ========================================================================== */
+const DEFAULTS = {
+  config: {
+    name: "WD-40",
+    sub: { ru: "бар-кухня", en: "bar & kitchen", ge: "ბარი-სამზარეულო" },
+    qr: "",
+    currency: "₾",
+    ink: "#1a3a8a",
+    tilt: 4, size: 10, jitter: 1.5,
+    provider: "anthropic",
+    apikey: "",
+    apikeys: { anthropic: "", openai: "" },
+    model: "claude-haiku-4-5-20251001",
+    stamp: { dataUrl: "", mime: "", sizeMm: 38, rotation: -8, opacity: 85, tint: false },
+    poster: { token: "", host: "joinposter.com", proxy: "", mode: "merge" },
+    ministry: {
+      ru: ["ГРУЗИЯ", "МИНИСТЕРСТВО ВИНОВОДОЧНЫХ ДЕЛ", "РЕСТОРАН WELCOME DRINK"],
+      en: ["GEORGIA", "MINISTRY OF WINE & VODKA AFFAIRS", "RESTAURANT WELCOME DRINK"],
+      ge: ["საქართველო", "ღვინისა და არაყის საქმეთა სამინისტრო", "რესტორანი WELCOME DRINK"]
+    },
+    titles: {
+      ru: { h1: "ПРЕЙСКУРАНТ", h2_kitchen: "порционных блюд", h2_bar: "буфетной продукции" },
+      en: { h1: "MENU", h2_kitchen: "", h2_bar: "" },
+      ge: { h1: "მენიუ", h2_kitchen: "", h2_bar: "" }
+    },
+    sync: {
+      mode: "off",
+      autoload: false,
+      url: { loadUrl: "", saveUrl: "", method: "PUT", authHeader: "" },
+      github: { owner: "", repo: "", branch: "main", path: "menu.json", token: "", lastSha: "" }
+    },
+    promo: {
+      enabled: true,
+      banner: { ru: "АКЦИЯ", en: "SPECIAL", ge: "აქცია" },
+      headline: {
+        ru: "Каждая 10-я настойка — в подарок!",
+        en: "Every 10th infusion is on the house!",
+        ge: "ყოველი მე-10 ნაყენი — საჩუქრად!"
+      },
+      subtitle: {
+        ru: "Смотри на экран — лови удачу",
+        en: "Watch the screen — catch your luck",
+        ge: "უყურე ეკრანს — დაიჭირე იღბალი"
+      },
+      counterNow: "009",
+      counterGoal: "010",
+      qrCaption: {
+        ru: "QR меню",
+        en: "Menu QR",
+        ge: "მენიუს QR"
+      }
+    }
+  },
+  notes: {
+    bar_infusions: {
+      ru: `<strong>Сладкие:</strong> Лимончелло · Черная смородина · Вишня · Малина · Клубника-кизил · Персик · Дыня · Банан · Абрикос со специями · Фундук-морковь · Крем-брюле · Сливочная лимончелло · Арбуз · Ткемали. <strong>Пряные:</strong> Грейпфрут-можжевельник · Куркума-апельсин-кардамон · Тархун · Базилик · Мятная · Имбирь-тысячелистник-эвкалипт · Ромашка · Анис-тмин-фенхель · Имбирь-томат. <strong>Солёные:</strong> Паприка · Чеснок · Бородинский · Томатный · Свекла-кофе · Том-ям · Чили-барбарис · Хреновуха · Стручковая фасоль · Кукуруза · Шпроты.`,
+      en: `<strong>Sweet:</strong> Limoncello · Black currant · Cherry · Raspberry · Strawberry-cornelian cherry · Peach · Melon · Banana · Spiced apricot · Hazelnut-carrot · Crème brûlée · Creamy limoncello · Watermelon · Tkemali. <strong>Spicy:</strong> Grapefruit-juniper · Turmeric-orange-cardamom · Tarragon · Basil · Mint · Ginger-yarrow-eucalyptus · Chamomile · Anise-cumin-fennel · Ginger-tomato. <strong>Savory:</strong> Paprika · Garlic · Borodinsky · Tomato · Beet-coffee · Tom Yum · Chili-barberry · Horseradish · Green beans · Corn · Sprats.`,
+      ge: `<strong>ტკბილი:</strong> ლიმონჩელო · შავი მოცხარი · ალუბალი · ჟოლო · მარწყვი-შინდი · ატამი · ნესვი · ბანანი · გარგარი სანელებლებით · თხილი-სტაფილო · კრემ-ბრულე · ნაღებიანი ლიმონჩელო · საზამთრო · ტყემალი. <strong>სუნელოვანი:</strong> გრეიპფრუტი-ღვია · კურკუმა-ფორთოხალი-კარდამონი · ტარხუნა · რეჰანი · პიტნა · ჯანჯაფილი-ფარსმანდუკი-ევკალიპტი · გვირილა · ანისი-ძირა-კამა · ჯანჯაფილი-პომიდორი. <strong>მარილიანი:</strong> პაპრიკა · ნიორი · ბოროდინსკი · პომიდორი · ჭარხალი-ყავა · თომ-იამ · ჩილი-კოწახური · პირშუშხა · ცერცვი · სიმინდი · შპროტები.`
+    }
+  },
+  kitchen: [
+    {
+      title: {ru: "Закуски", en: "Appetizers", ge: "ცივი კერძები"},
+      items: [
+        {ru:"Оливки", en:"Olives", ge:"ზეთისხილი", portion:"80", price:""},
+        {ru:"Малосольные огурцы", en:"Lightly salted cucumbers", ge:"მსუბუქად დამარილებული კიტრი", portion:"150", price:""},
+        {ru:"Квашеная капуста", en:"Sauerkraut", ge:"მჟავე კომბოსტო", portion:"150", price:""},
+        {ru:"Грибочки", en:"Marinated mushrooms", ge:"მარინადის სოკო", portion:"120", price:""},
+        {ru:"Соленья ассорти", en:"Mixed pickles", ge:"მარინადების ასორტი", portion:"250", price:""},
+        {ru:"Маринованные перепелиные яйца", en:"Marinated quail eggs", ge:"მარინადის მწყრის კვერცხი", portion:"100", price:""},
+        {ru:"Телячьи язычки", en:"Veal tongue slices", ge:"ხბოს ენა", portion:"120", price:""},
+        {ru:"Сало", en:"Salo", ge:"ღორის ქონი", portion:"100", price:""},
+        {ru:"Картошечка", en:"Potatoes", ge:"კარტოფილი", portion:"200", price:""},
+        {ru:"Паштет с вишнёвым вареньем", en:"Pâté with cherry jam", ge:"პაშტეტი ალუბლის მურაბით", portion:"120", price:""},
+        {ru:"Кабачковая икра", en:"Zucchini spread", ge:"ყაბაყის ხიზილალა", portion:"150", price:""},
+        {ru:"Фаршмак", en:"Forshmak", ge:"ფორშმაკი", portion:"120", price:""},
+        {ru:"Селёдка", en:"Herring", ge:"ქაშაყი", portion:"150", price:""},
+        {ru:"Селёдка под шубой", en:"Herring under a fur coat", ge:"ქაშაყი ბეწვის ქვეშ", portion:"180", price:""},
+        {ru:"Салат из сайры", en:"Saira salad", ge:"საირას სალათი", portion:"180", price:""},
+        {ru:"Крабовый салат", en:"Crab salad", ge:"კიბორჩხალის სალათი", portion:"180", price:""}
+      ]
+    },
+    {
+      title: {ru: "Бутерброды", en: "Sandwiches", ge: "სენდვიჩები"},
+      items: [
+        {ru:"Докторская колбаса", en:"Doctor's sausage", ge:"დოქტორის ძეხვი", portion:"2 шт.", price:""},
+        {ru:"Шпроты", en:"Sprats", ge:"შპროტები", portion:"2 шт.", price:""},
+        {ru:"Сырно-чесночная намазка", en:"Cheese & garlic spread", ge:"ყველ-ნივრის ნამაზი", portion:"2 шт.", price:""}
+      ]
+    },
+    {
+      title: {ru: "Горячее", en: "Hot dishes", ge: "ცხელი კერძები"},
+      items: [
+        {ru:"Борщ с языком и салом", en:"Borscht with tongue & salo", ge:"ბორში ენით და ქონით", portion:"350", price:""},
+        {ru:"Вареники с картошкой", en:"Vareniki with potato", ge:"ვარენიკი კარტოფილით", portion:"200", price:""},
+        {ru:"Пельмени", en:"Pelmeni", ge:"პელმენი", portion:"200", price:""},
+        {ru:"Сосиски с горошком", en:"Sausages with peas", ge:"სოსისი ბარდით", portion:"250", price:""},
+        {ru:"Куриный бульон", en:"Chicken broth", ge:"ქათმის ბულიონი", portion:"300", price:""}
+      ]
+    },
+    {
+      title: {ru: "Спешл", en: "Specials", ge: "სპეშლები"},
+      items: [
+        {ru:"Красная икра (лососевая)", en:"Salmon caviar", ge:"წითელი ხიზილალა", portion:"50", price:""},
+        {ru:"Этажерка закусок", en:"Appetizer stand", ge:"წასახემსებლის ეტაჟერკა", portion:"на компанию", price:""}
+      ]
+    },
+    {
+      title: {ru: "Орешки", en: "Nuts", ge: "თხილეული"},
+      items: [
+        {ru:"Кешью", en:"Fried cashews", ge:"შემწვარი კეშიუ", portion:"80", price:""},
+        {ru:"Фисташки", en:"Pistachios", ge:"ფსტა", portion:"80", price:""}
+      ]
+    },
+    {
+      title: {ru: "Десерты", en: "Desserts", ge: "დესერტი"},
+      items: [
+        {ru:"Шоколадная колбаса", en:"Chocolate sausage", ge:"შოკოლადის ძეხვი", portion:"120", price:""},
+        {ru:"Рулет с маком", en:"Poppy seed roll", ge:"ყაყაჩოს რულეტი", portion:"120", price:""}
+      ]
+    }
+  ],
+  bar: [
+    {
+      title: {ru: "Фирменные настойки", en: "Signature infusions", ge: "ფირმის ნაყენები"},
+      items: [
+        {ru:"Порция фирменной настойки", en:"Signature infusion (portion)", ge:"ფირმის ნაყენი (პორცია)", portion:"50", price:""},
+        {ru:"Сет из 5 порций", en:"Infusion set × 5", ge:"ნაყენის სეტი × 5", portion:"5×50", price:""},
+        {ru:"Сет из 10 порций", en:"Infusion set × 10", ge:"ნაყენის სეტი × 10", portion:"10×50", price:""}
+      ],
+      noteKey: "bar_infusions"
+    },
+    {
+      title: {ru: "Ерши", en: "Yorsh (beer & vodka)", ge: "იორში"},
+      items: [
+        {ru:"Ёрш эль классико", en:"Classic ale yorsh", ge:"იორში ელ კლასიკო", portion:"350", price:""},
+        {ru:"Ёрш картули", en:"Kartuli yorsh", ge:"იორში ქართული", portion:"350", price:""},
+        {ru:"Мечеладзе", en:"Mecheladze", ge:"მეჭელაძე", portion:"350", price:""},
+        {ru:"Ёрш ля фем", en:"La Femme yorsh", ge:"იორში ლა ფემ", portion:"350", price:""},
+        {ru:"Ёрш Лимончелло", en:"Limoncello yorsh", ge:"იორში ლიმონჩელო", portion:"350", price:""},
+        {ru:"Ёрш а-ля Гараж", en:"À la Garage yorsh", ge:"იორში ა-ლა გარაჟი", portion:"350", price:""}
+      ]
+    },
+    {
+      title: {ru: "Коктейли WD-40", en: "WD-40 Cocktails", ge: "WD-40 კოქტეილები"},
+      items: [
+        {ru:"Чача Сауэр", en:"Chacha Sour", ge:"ჩაჩა საუერი", portion:"150", price:""},
+        {ru:"Базил Смэш", en:"Basil Smash", ge:"ბაზილ სმეში", portion:"150", price:""},
+        {ru:"Кровавая Мэри", en:"Bloody Mary", ge:"ბლადი მერი", portion:"200", price:""},
+        {ru:"Киви Мартини", en:"Kiwi Martini", ge:"კივის მარტინი", portion:"150", price:""},
+        {ru:"Распберри Смэш", en:"Raspberry Smash", ge:"ჟოლოს სმეში", portion:"150", price:""},
+        {ru:"Классический коктейль — спроси у бармена", en:"Classic cocktail — ask the bartender", ge:"კლასიკური კოქტეილი — ჰკითხეთ ბარმენს", portion:"—", price:""}
+      ]
+    },
+    {
+      title: {ru: "Виски", en: "Whiskey", ge: "ვისკი"},
+      items: [
+        {ru:"Jameson", en:"Jameson", ge:"Jameson", portion:"50", price:""},
+        {ru:"Monkey Shoulder", en:"Monkey Shoulder", ge:"Monkey Shoulder", portion:"50", price:""},
+        {ru:"Maker's Mark", en:"Maker's Mark", ge:"Maker's Mark", portion:"50", price:""},
+        {ru:"Ballantine's", en:"Ballantine's", ge:"Ballantine's", portion:"50", price:""},
+        {ru:"The Famous Grouse", en:"The Famous Grouse", ge:"The Famous Grouse", portion:"50", price:""}
+      ]
+    },
+    {
+      title: {ru: "Вермуты и биттеры", en: "Vermouth & Bitters", ge: "ვერმუტი"},
+      items: [
+        {ru:"Aperol", en:"Aperol", ge:"Aperol", portion:"50", price:""},
+        {ru:"Campari", en:"Campari", ge:"Campari", portion:"50", price:""},
+        {ru:"Martini Bianco", en:"Martini Bianco", ge:"Martini Bianco", portion:"100", price:""},
+        {ru:"Martini Rosso", en:"Martini Rosso", ge:"Martini Rosso", portion:"100", price:""},
+        {ru:"Martini Extra Dry", en:"Martini Extra Dry", ge:"Martini Extra Dry", portion:"100", price:""}
+      ]
+    },
+    {
+      title: {ru: "Ликёры", en: "Liqueurs", ge: "ლიკიორი"},
+      items: [
+        {ru:"Бехеровка", en:"Becherovka", ge:"Becherovka", portion:"50", price:""},
+        {ru:"Егермейстер", en:"Jägermeister", ge:"Jägermeister", portion:"50", price:""},
+        {ru:"Калуа (кофейный)", en:"Kahlúa (coffee)", ge:"Kahlúa (ყავა)", portion:"50", price:""},
+        {ru:"Амаретто", en:"Amaretto", ge:"Amaretto", portion:"50", price:""}
+      ]
+    },
+    {
+      title: {ru: "Коньяки и бренди", en: "Cognac & Brandy", ge: "კონიაკი და ბრენდი"},
+      items: [
+        {ru:"Арарат 3*", en:"Ararat 3*", ge:"არარატი 3*", portion:"50", price:""},
+        {ru:"Sarajishvili 3*", en:"Sarajishvili 3*", ge:"სარაჯიშვილი 3*", portion:"50", price:""},
+        {ru:"Askaneli 4*", en:"Askaneli 4*", ge:"ასკანელი 4*", portion:"50", price:""},
+        {ru:"METAXA", en:"METAXA", ge:"METAXA", portion:"50", price:""}
+      ]
+    },
+    {
+      title: {ru: "Ракия", en: "Rakia", ge: "რაკია"},
+      items: [
+        {ru:"Ракия", en:"Rakia", ge:"რაკია", portion:"50", price:""}
+      ]
+    },
+    {
+      title: {ru: "Текила", en: "Tequila", ge: "ტეკილა"},
+      items: [
+        {ru:"Olmeca Silver", en:"Olmeca Silver", ge:"Olmeca Silver", portion:"50", price:""},
+        {ru:"Olmeca Gold", en:"Olmeca Gold", ge:"Olmeca Gold", portion:"50", price:""},
+        {ru:"Sierra Silver", en:"Sierra Silver", ge:"Sierra Silver", portion:"50", price:""}
+      ]
+    },
+    {
+      title: {ru: "Джин", en: "Gin", ge: "ჯინი"},
+      items: [
+        {ru:"Beefeater", en:"Beefeater", ge:"Beefeater", portion:"50", price:""},
+        {ru:"Bombay Sapphire", en:"Bombay Sapphire", ge:"Bombay Sapphire", portion:"50", price:""}
+      ]
+    },
+    {
+      title: {ru: "Ром", en: "Rum", ge: "რომი"},
+      items: [
+        {ru:"Ром", en:"Rum", ge:"რომი", portion:"50", price:""},
+        {ru:"Ямайский ром", en:"Jamaican rum", ge:"იამაიკური რომი", portion:"50", price:""}
+      ]
+    },
+    {
+      title: {ru: "Чача", en: "Chacha", ge: "ჩაჩა"},
+      items: [
+        {ru:"Персиковая", en:"Peach", ge:"ატმის ჩაჩა", portion:"50", price:""},
+        {ru:"Ткемали", en:"Tkemali", ge:"ტყემლის ჩაჩა", portion:"50", price:""},
+        {ru:"Классическая Бадагони", en:"Classic Badagoni", ge:"კლასიკური ბადაგონი", portion:"50", price:""},
+        {ru:"Классическая Платинум Асканели", en:"Classic Platinum Askaneli", ge:"კლასიკური პლატინუმ ასკანელი", portion:"50", price:""}
+      ]
+    },
+    {
+      title: {ru: "Водка", en: "Vodka", ge: "არაყი"},
+      items: [
+        {ru:"Столичная", en:"Stolichnaya", ge:"სტოლიჩნაია", portion:"50", price:""},
+        {ru:"Koskenkorva", en:"Koskenkorva", ge:"Koskenkorva", portion:"50", price:""},
+        {ru:"Армянская — гранатовая", en:"Armenian pomegranate", ge:"სომხური ბროწეული", portion:"50", price:""},
+        {ru:"Армянская — барбарис", en:"Armenian barberry", ge:"სომხური კოწახური", portion:"50", price:""},
+        {ru:"Армянская — абрикос", en:"Armenian apricot", ge:"სომხური გარგარი", portion:"50", price:""}
+      ]
+    }
+  ]
+};
+
+/* ==========================================================================
+   STATE
+   ========================================================================== */
+const STORAGE_KEY = "wd40_menu_v1";
+let state = loadState();
+let currentTab = "kitchen";
+let currentPreview = {menu: "kitchen", lang: "ru"};
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return JSON.parse(JSON.stringify(DEFAULTS));
+}
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+/* ==========================================================================
+   EDITOR RENDERING
+   ========================================================================== */
+function $(id) { return document.getElementById(id); }
+
+const PROVIDER_MODELS = {
+  anthropic: [
+    { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5 (быстрый, дешёвый)" },
+    { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6 (баланс)" },
+    { id: "claude-opus-4-6", label: "Claude Opus 4.6 (максимум качества)" }
+  ],
+  openai: [
+    { id: "gpt-4o-mini", label: "gpt-4o-mini (дешёвый)" },
+    { id: "gpt-4o", label: "gpt-4o (качество)" },
+    { id: "gpt-4.1-mini", label: "gpt-4.1-mini" }
+  ]
+};
+const PROVIDER_DEFAULT_MODEL = {
+  anthropic: "claude-haiku-4-5-20251001",
+  openai: "gpt-4o-mini"
+};
+
+function renderModelOptions() {
+  const prov = state.config.provider || "anthropic";
+  const sel = $("cfg-model");
+  sel.innerHTML = "";
+  PROVIDER_MODELS[prov].forEach(m => {
+    const o = document.createElement("option");
+    o.value = m.id; o.textContent = m.label;
+    sel.appendChild(o);
+  });
+  // pick current model or default
+  const models = PROVIDER_MODELS[prov].map(m => m.id);
+  if (!models.includes(state.config.model)) {
+    state.config.model = PROVIDER_DEFAULT_MODEL[prov];
+  }
+  sel.value = state.config.model;
+
+  // update note
+  const note = $("provider-note");
+  if (prov === "anthropic") {
+    note.textContent = "Ключ хранится только в вашем браузере (localStorage). Прямой вызов api.anthropic.com из браузера (заголовок anthropic-dangerous-direct-browser-access).";
+  } else {
+    note.textContent = "Ключ хранится только в вашем браузере (localStorage). Прямой вызов api.openai.com.";
+  }
+}
+
+function renderConfig() {
+  // backfill ministry/titles if missing (migrate old saved data)
+  if (!state.config.ministry) {
+    state.config.ministry = {
+      ru: ["ГРУЗИЯ", "МИНИСТЕРСТВО ВИНОВОДОЧНЫХ ДЕЛ", "РЕСТОРАН WELCOME DRINK"],
+      en: ["GEORGIA", "MINISTRY OF WINE & VODKA AFFAIRS", "RESTAURANT WELCOME DRINK"],
+      ge: ["საქართველო", "ღვინისა და არაყის საქმეთა სამინისტრო", "რესტორანი WELCOME DRINK"]
+    };
+  }
+  if (!state.config.titles) {
+    state.config.titles = {
+      ru: { h1: "ПРЕЙСКУРАНТ", h2_kitchen: "порционных блюд", h2_bar: "буфетной продукции" },
+      en: { h1: "MENU", h2_kitchen: "", h2_bar: "" },
+      ge: { h1: "მენიუ", h2_kitchen: "", h2_bar: "" }
+    };
+  }
+  if (!state.config.sync) {
+    state.config.sync = {
+      mode: "off", autoload: false,
+      url: { loadUrl: "", saveUrl: "", method: "PUT", authHeader: "" },
+      github: { owner: "", repo: "", branch: "main", path: "menu.json", token: "", lastSha: "" }
+    };
+  }
+  if (!state.config.promo) {
+    state.config.promo = {
+      enabled: true,
+      banner: { ru: "АКЦИЯ", en: "SPECIAL", ge: "აქცია" },
+      headline: {
+        ru: "Каждая 10-я настойка — в подарок!",
+        en: "Every 10th infusion is on the house!",
+        ge: "ყოველი მე-10 ნაყენი — საჩუქრად!"
+      },
+      subtitle: {
+        ru: "Смотри на экран — лови удачу",
+        en: "Watch the screen — catch your luck",
+        ge: "უყურე ეკრანს — დაიჭირე იღბალი"
+      },
+      counterNow: "009",
+      counterGoal: "010",
+      qrCaption: {
+        ru: "QR меню",
+        en: "Menu QR",
+        ge: "მენიუს QR"
+      }
+    };
+  } else if (state.config.promo.qrCaption) {
+    // Auto-migrate the old default QR captions to the new one for existing local saves.
+    const OLD = {
+      ru: "сканируй и следи за счётом",
+      en: "scan to watch the counter live",
+      ge: "დაასკანერე და აკონტროლე ანგარიში"
+    };
+    const NEW = { ru: "QR меню", en: "Menu QR", ge: "მენიუს QR" };
+    Object.keys(OLD).forEach(l => {
+      if (state.config.promo.qrCaption[l] === OLD[l]) {
+        state.config.promo.qrCaption[l] = NEW[l];
+      }
+    });
+  }
+
+  $("cfg-name").value = state.config.name;
+  $("cfg-qr").value = state.config.qr;
+  $("cfg-currency").value = state.config.currency;
+  $("cfg-ink").value = state.config.ink;
+  $("cfg-tilt").value = state.config.tilt;
+  $("cfg-size").value = state.config.size;
+  $("cfg-jitter").value = state.config.jitter;
+  // backfill new fields for older saved states
+  if (!state.config.provider) state.config.provider = "anthropic";
+  if (!state.config.apikeys) state.config.apikeys = { anthropic: "", openai: "" };
+  // migrate legacy single apikey → openai slot
+  if (state.config.apikey && !state.config.apikeys.openai && !state.config.apikeys.anthropic) {
+    state.config.apikeys.openai = state.config.apikey;
+  }
+  $("cfg-provider").value = state.config.provider;
+  $("cfg-apikey").value = state.config.apikeys[state.config.provider] || "";
+  renderModelOptions();
+
+  // stamp
+  if (!state.config.stamp) state.config.stamp = { dataUrl: "", mime: "", sizeMm: 50, rotation: -8, opacity: 80, tint: false };
+  $("cfg-stamp-size").value = state.config.stamp.sizeMm;
+  $("cfg-stamp-rot").value = state.config.stamp.rotation;
+  $("cfg-stamp-opacity").value = state.config.stamp.opacity;
+  $("cfg-stamp-opacity-val").textContent = state.config.stamp.opacity + "%";
+  $("cfg-stamp-tint").checked = !!state.config.stamp.tint;
+  renderStampPreview();
+
+  // poster (UI removed; state kept for backward compatibility, no longer wired)
+  if (!state.config.poster) state.config.poster = { token: "", host: "joinposter.com", proxy: "", mode: "merge" };
+
+  // ministry + titles
+  ["ru","en","ge"].forEach(l => {
+    for (let i = 0; i < 3; i++) {
+      const el = $(`cfg-min-${l}-${i}`);
+      if (el) el.value = (state.config.ministry[l] || [])[i] || "";
+    }
+    const h1El = $(`cfg-title-${l}-h1`);
+    const h2kEl = $(`cfg-title-${l}-h2-kitchen`);
+    const h2bEl = $(`cfg-title-${l}-h2-bar`);
+    if (h1El) h1El.value = state.config.titles[l].h1 || "";
+    if (h2kEl) h2kEl.value = state.config.titles[l].h2_kitchen || "";
+    if (h2bEl) h2bEl.value = state.config.titles[l].h2_bar || "";
+  });
+
+  // sync
+  const sy = state.config.sync;
+  $("cfg-sync-mode").value = sy.mode || "off";
+  $("cfg-sync-autoload").checked = !!sy.autoload;
+  $("cfg-sync-url-load").value = sy.url?.loadUrl || "";
+  $("cfg-sync-url-save").value = sy.url?.saveUrl || "";
+  $("cfg-sync-url-method").value = sy.url?.method || "PUT";
+  $("cfg-sync-url-auth").value = sy.url?.authHeader || "";
+  $("cfg-sync-gh-owner").value = sy.github?.owner || "";
+  $("cfg-sync-gh-repo").value = sy.github?.repo || "";
+  $("cfg-sync-gh-branch").value = sy.github?.branch || "main";
+  $("cfg-sync-gh-path").value = sy.github?.path || "menu.json";
+  $("cfg-sync-gh-token").value = sy.github?.token || "";
+  syncRefreshModeUI();
+
+  // promo
+  const pr = state.config.promo;
+  $("cfg-promo-enabled").checked = !!pr.enabled;
+  $("cfg-promo-counter-now").value = pr.counterNow || "";
+  $("cfg-promo-counter-goal").value = pr.counterGoal || "";
+  ["ru","en","ge"].forEach(l => {
+    const setVal = (id, v) => { const el = $(id); if (el) el.value = v || ""; };
+    setVal(`cfg-promo-banner-${l}`, pr.banner?.[l]);
+    setVal(`cfg-promo-headline-${l}`, pr.headline?.[l]);
+    setVal(`cfg-promo-subtitle-${l}`, pr.subtitle?.[l]);
+    setVal(`cfg-promo-qr-${l}`, pr.qrCaption?.[l]);
+  });
+}
+
+function renderStampPreview() {
+  const p = $("stamp-preview");
+  const s = state.config.stamp;
+  if (s && s.dataUrl) {
+    p.innerHTML = `<img src="${s.dataUrl}" style="max-width:80%;max-height:80px;display:block">`;
+  } else {
+    p.textContent = "нет файла";
+  }
+}
+
+function bindConfig() {
+  const binds = {
+    "cfg-name": v => state.config.name = v,
+    "cfg-qr": v => state.config.qr = v,
+    "cfg-currency": v => state.config.currency = v,
+    "cfg-ink": v => state.config.ink = v,
+    "cfg-tilt": v => state.config.tilt = +v,
+    "cfg-size": v => state.config.size = +v,
+    "cfg-jitter": v => state.config.jitter = +v,
+    "cfg-model": v => state.config.model = v,
+  };
+  Object.entries(binds).forEach(([id, fn]) => {
+    $(id).addEventListener("input", e => {
+      fn(e.target.value);
+      saveState();
+      rerenderPreview();
+    });
+  });
+  // API key bound per-provider
+  $("cfg-apikey").addEventListener("input", e => {
+    state.config.apikeys[state.config.provider] = e.target.value;
+    saveState();
+  });
+  // Provider switch: swap key field, update model list
+  $("cfg-provider").addEventListener("change", e => {
+    state.config.provider = e.target.value;
+    $("cfg-apikey").value = state.config.apikeys[state.config.provider] || "";
+    state.config.model = PROVIDER_DEFAULT_MODEL[state.config.provider];
+    renderModelOptions();
+    saveState();
+  });
+
+  // Sync bindings
+  $("cfg-sync-mode").addEventListener("change", e => {
+    state.config.sync.mode = e.target.value;
+    syncRefreshModeUI();
+    saveState();
+  });
+  $("cfg-sync-autoload").addEventListener("change", e => {
+    state.config.sync.autoload = e.target.checked;
+    saveState();
+  });
+  const syncUrlBinds = {
+    "cfg-sync-url-load": ["url","loadUrl"],
+    "cfg-sync-url-save": ["url","saveUrl"],
+    "cfg-sync-url-method": ["url","method"],
+    "cfg-sync-url-auth": ["url","authHeader"],
+    "cfg-sync-gh-owner": ["github","owner"],
+    "cfg-sync-gh-repo": ["github","repo"],
+    "cfg-sync-gh-branch": ["github","branch"],
+    "cfg-sync-gh-path": ["github","path"],
+    "cfg-sync-gh-token": ["github","token"],
+  };
+  Object.entries(syncUrlBinds).forEach(([id, [sec, key]]) => {
+    const el = $(id); if (!el) return;
+    const handler = e => {
+      if (!state.config.sync[sec]) state.config.sync[sec] = {};
+      state.config.sync[sec][key] = e.target.value;
+      saveState();
+    };
+    el.addEventListener("input", handler);
+    el.addEventListener("change", handler);
+  });
+  $("btn-sync-load").addEventListener("click", syncLoad);
+  $("btn-sync-save").addEventListener("click", syncSave);
+
+  // Promo bindings
+  $("cfg-promo-enabled").addEventListener("change", e => {
+    state.config.promo.enabled = e.target.checked;
+    saveState(); rerenderPreview();
+  });
+  ["cfg-promo-counter-now", "cfg-promo-counter-goal"].forEach(id => {
+    $(id).addEventListener("input", e => {
+      const key = id === "cfg-promo-counter-now" ? "counterNow" : "counterGoal";
+      state.config.promo[key] = e.target.value;
+      saveState(); rerenderPreview();
+    });
+  });
+  ["ru","en","ge"].forEach(l => {
+    const bindText = (id, key) => {
+      const el = $(id); if (!el) return;
+      el.addEventListener("input", e => {
+        if (!state.config.promo[key]) state.config.promo[key] = {};
+        state.config.promo[key][l] = e.target.value;
+        saveState(); rerenderPreview();
+      });
+    };
+    bindText(`cfg-promo-banner-${l}`, "banner");
+    bindText(`cfg-promo-headline-${l}`, "headline");
+    bindText(`cfg-promo-subtitle-${l}`, "subtitle");
+    bindText(`cfg-promo-qr-${l}`, "qrCaption");
+  });
+
+  // Ministry header + titles (9 ministry inputs + 9 title inputs)
+  ["ru","en","ge"].forEach(l => {
+    for (let i = 0; i < 3; i++) {
+      const el = $(`cfg-min-${l}-${i}`);
+      if (el) el.addEventListener("input", e => {
+        if (!state.config.ministry[l]) state.config.ministry[l] = ["","",""];
+        state.config.ministry[l][i] = e.target.value;
+        saveState(); rerenderPreview();
+      });
+    }
+    const titleBinds = [
+      [`cfg-title-${l}-h1`, "h1"],
+      [`cfg-title-${l}-h2-kitchen`, "h2_kitchen"],
+      [`cfg-title-${l}-h2-bar`, "h2_bar"]
+    ];
+    titleBinds.forEach(([id, key]) => {
+      const el = $(id);
+      if (el) el.addEventListener("input", e => {
+        state.config.titles[l][key] = e.target.value;
+        saveState(); rerenderPreview();
+      });
+    });
+  });
+}
+
+function renderEditorFor(menuKey) {
+  const cont = $("editor-" + menuKey);
+  cont.innerHTML = "";
+  state[menuKey].forEach((cat, ci) => {
+    const block = document.createElement("div");
+    block.className = "category-block";
+    block.innerHTML = `
+      <div class="cat-head">
+        <input value="${esc(cat.title.ru)}" data-field="title-ru" placeholder="Категория RU">
+        <button class="xbtn" title="Удалить категорию">✕</button>
+      </div>
+      <div class="row" style="margin:0 0 6px">
+        <input value="${esc(cat.title.en)}" data-field="title-en" placeholder="Category EN" style="font-size:11px;padding:3px 5px">
+        <input value="${esc(cat.title.ge)}" data-field="title-ge" placeholder="კატეგორია GE" style="font-size:11px;padding:3px 5px">
+      </div>
+      <div class="item-head">
+        <div>RU</div><div>EN</div><div>GE</div><div>Норма</div><div>Цена</div><div></div>
+      </div>
+      <div class="items"></div>
+      <div style="margin-top:4px"><button class="add-item" style="font-size:11px;padding:3px 8px">+ позиция</button></div>
+    `;
+    cont.appendChild(block);
+
+    const itemsDiv = block.querySelector(".items");
+    cat.items.forEach((it, ii) => itemsDiv.appendChild(makeItemRow(menuKey, ci, ii, it)));
+
+    block.querySelector(".cat-head .xbtn").addEventListener("click", () => {
+      if (confirm("Удалить категорию «" + cat.title.ru + "»?")) {
+        state[menuKey].splice(ci, 1); saveState(); renderEditor(); rerenderPreview();
+      }
+    });
+    block.querySelector(".add-item").addEventListener("click", () => {
+      cat.items.push({ru:"", en:"", ge:"", portion:"", price:""});
+      saveState(); renderEditor(); rerenderPreview();
+    });
+    block.querySelectorAll('[data-field="title-ru"]').forEach(el =>
+      el.addEventListener("input", e => { cat.title.ru = e.target.value; saveState(); rerenderPreview(); }));
+    block.querySelectorAll('[data-field="title-en"]').forEach(el =>
+      el.addEventListener("input", e => { cat.title.en = e.target.value; saveState(); rerenderPreview(); }));
+    block.querySelectorAll('[data-field="title-ge"]').forEach(el =>
+      el.addEventListener("input", e => { cat.title.ge = e.target.value; saveState(); rerenderPreview(); }));
+  });
+
+  // add category
+  const addCat = document.createElement("button");
+  addCat.textContent = "+ добавить категорию";
+  addCat.style.cssText = "width:100%;padding:8px;border:1px dashed #bbb;background:#fafaf5;margin-top:6px";
+  addCat.addEventListener("click", () => {
+    state[menuKey].push({title:{ru:"Новая категория",en:"New category",ge:"ახალი კატეგორია"}, items:[]});
+    saveState(); renderEditor(); rerenderPreview();
+  });
+  cont.appendChild(addCat);
+}
+
+function makeItemRow(menuKey, ci, ii, it) {
+  const row = document.createElement("div");
+  row.className = "item-row";
+  row.innerHTML = `
+    <input value="${esc(it.ru)}" placeholder="рус">
+    <input value="${esc(it.en)}" placeholder="eng">
+    <input value="${esc(it.ge)}" placeholder="ქართ">
+    <input value="${esc(it.portion)}" placeholder="норма">
+    <input value="${esc(it.price)}" placeholder="цена">
+    <button class="xbtn" title="Удалить">×</button>
+  `;
+  const inputs = row.querySelectorAll("input");
+  const fields = ["ru", "en", "ge", "portion", "price"];
+  inputs.forEach((inp, idx) => {
+    inp.addEventListener("input", e => {
+      state[menuKey][ci].items[ii][fields[idx]] = e.target.value;
+      saveState(); rerenderPreview();
+    });
+  });
+  row.querySelector(".xbtn").addEventListener("click", () => {
+    state[menuKey][ci].items.splice(ii, 1);
+    saveState(); renderEditor(); rerenderPreview();
+  });
+  return row;
+}
+
+function renderEditor() {
+  renderEditorFor("kitchen");
+  renderEditorFor("bar");
+}
+
+function esc(s) { return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+/* ==========================================================================
+   HANDWRITING EFFECT
+   ========================================================================== */
+function handwrite(text) {
+  if (!text) return "";
+  const tilt = state.config.tilt;
+  const sz = state.config.size / 100;
+  const jit = state.config.jitter;
+  return String(text).split("").map(ch => {
+    if (ch === " ") return "&nbsp;";
+    const r = (Math.random() - 0.5) * 2 * tilt;
+    const s = 1 + (Math.random() - 0.5) * 2 * sz;
+    const dy = (Math.random() - 0.5) * 2 * jit;
+    const dx = (Math.random() - 0.5) * jit;
+    return `<span class="ink" style="transform:rotate(${r.toFixed(2)}deg) scale(${s.toFixed(2)}) translate(${dx.toFixed(2)}px,${dy.toFixed(2)}px);color:${state.config.ink}">${esc(ch)}</span>`;
+  }).join("");
+}
+
+/* ==========================================================================
+   MENU PAGE RENDERING
+   ========================================================================== */
+const COL_LABELS = {
+  ru: ["Наименование блюд", "Норма", "Цена"],
+  en: ["Name of dishes", "Portion", "Price"],
+  ge: ["კერძების დასახელება", "ნორმა", "ფასი"]
+};
+const COL_LABELS_BAR = {
+  ru: ["Наименование напитков", "Норма", "Цена"],
+  en: ["Drink names", "Portion", "Price"],
+  ge: ["სასმელების დასახელება", "ნორმა", "ფასი"]
+};
+
+/* ==========================================================================
+   MENU SYNC (URL / GitHub Contents API)
+   ========================================================================== */
+function syncRefreshModeUI() {
+  const m = state.config.sync.mode;
+  $("sync-url-fields").style.display    = m === "url"    ? "" : "none";
+  $("sync-github-fields").style.display = m === "github" ? "" : "none";
+}
+
+/** Strip secrets (API keys, PATs, Poster tokens) before uploading to a server. */
+function stateWithoutSecrets() {
+  const copy = JSON.parse(JSON.stringify(state));
+  if (copy.config) {
+    if (copy.config.apikeys) copy.config.apikeys = { anthropic: "", openai: "" };
+    if (copy.config.poster) copy.config.poster.token = "";
+    if (copy.config.sync) {
+      if (copy.config.sync.github) copy.config.sync.github.token = "";
+      if (copy.config.sync.url) copy.config.sync.url.authHeader = "";
+    }
+  }
+  return copy;
+}
+
+/** Merge loaded remote state into local; keep local secrets so they aren't wiped. */
+function applyLoadedState(loaded) {
+  if (!loaded || typeof loaded !== "object" || !loaded.config) {
+    throw new Error("Неверный формат данных");
+  }
+  const localSecrets = {
+    apikeys: state.config.apikeys,
+    posterToken: state.config.poster?.token,
+    githubToken: state.config.sync?.github?.token,
+    urlAuthHeader: state.config.sync?.url?.authHeader,
+  };
+  state = loaded;
+  state.config = state.config || {};
+  state.config.apikeys = { ...(state.config.apikeys || { anthropic: "", openai: "" }), ...localSecrets.apikeys };
+  if (localSecrets.posterToken) {
+    state.config.poster = state.config.poster || {};
+    state.config.poster.token = localSecrets.posterToken;
+  }
+  if (localSecrets.githubToken) {
+    state.config.sync = state.config.sync || {};
+    state.config.sync.github = state.config.sync.github || {};
+    state.config.sync.github.token = localSecrets.githubToken;
+  }
+  if (localSecrets.urlAuthHeader) {
+    state.config.sync = state.config.sync || {};
+    state.config.sync.url = state.config.sync.url || {};
+    state.config.sync.url.authHeader = localSecrets.urlAuthHeader;
+  }
+  saveState();
+  renderConfig();
+  renderEditor();
+  rerenderPreview();
+}
+
+async function _urlLoad() {
+  const { loadUrl } = state.config.sync.url || {};
+  if (!loadUrl) throw new Error("Укажите Load URL");
+  const r = await fetch(loadUrl, { cache: "no-store" });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const parsed = JSON.parse(await r.text());
+  return parsed.record && parsed.record.config ? parsed.record : parsed;
+}
+async function _urlSave() {
+  const s = state.config.sync.url || {};
+  if (!s.saveUrl) throw new Error("Укажите Save URL");
+  const body = JSON.stringify(stateWithoutSecrets(), null, 2);
+  const headers = { "Content-Type": "application/json" };
+  if (s.authHeader) {
+    const i = s.authHeader.indexOf(":");
+    if (i > 0) headers[s.authHeader.slice(0, i).trim()] = s.authHeader.slice(i + 1).trim();
+  }
+  const r = await fetch(s.saveUrl, { method: s.method || "PUT", headers, body });
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+}
+
+function _b64encodeUtf8(text) {
+  const bytes = new TextEncoder().encode(text);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function _b64decodeUtf8(b64) {
+  const bin = atob(b64.replace(/\s/g, ""));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder("utf-8").decode(bytes);
+}
+async function _githubGet() {
+  const g = state.config.sync.github;
+  const url = `https://api.github.com/repos/${g.owner}/${g.repo}/contents/${encodeURIComponent(g.path)}?ref=${encodeURIComponent(g.branch || "main")}`;
+  const r = await fetch(url, {
+    cache: "no-store",
+    headers: {
+      "Accept": "application/vnd.github+json",
+      ...(g.token ? { "Authorization": "Bearer " + g.token } : {})
+    }
+  });
+  if (r.status === 404) return { exists: false };
+  if (!r.ok) throw new Error(`GitHub GET ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  const j = await r.json();
+  return { exists: true, sha: j.sha, content: _b64decodeUtf8(j.content) };
+}
+async function _githubLoad() {
+  const g = state.config.sync.github;
+  if (!g.owner || !g.repo) throw new Error("Укажите owner и repo");
+  const got = await _githubGet();
+  if (!got.exists) throw new Error("Файл не найден в репо");
+  state.config.sync.github.lastSha = got.sha;
+  return JSON.parse(got.content);
+}
+async function _githubSave() {
+  const g = state.config.sync.github;
+  if (!g.token) throw new Error("Нужен Personal Access Token");
+  if (!g.owner || !g.repo) throw new Error("Укажите owner и repo");
+  let sha = null;
+  try {
+    const got = await _githubGet();
+    sha = got.exists ? got.sha : null;
+  } catch (e) { /* first save — ok */ }
+  const body = JSON.stringify(stateWithoutSecrets(), null, 2);
+  const url = `https://api.github.com/repos/${g.owner}/${g.repo}/contents/${encodeURIComponent(g.path)}`;
+  const payload = {
+    message: `menu update ${new Date().toISOString().slice(0, 19)}`,
+    content: _b64encodeUtf8(body),
+    branch: g.branch || "main",
+    ...(sha ? { sha } : {})
+  };
+  const r = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "Accept": "application/vnd.github+json",
+      "Authorization": "Bearer " + g.token,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!r.ok) throw new Error(`GitHub PUT ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  const j = await r.json();
+  state.config.sync.github.lastSha = j.content?.sha || "";
+  saveState();
+}
+
+async function syncLoad() {
+  const s = $("sync-status"); s.className = "status"; s.textContent = "Загружаю...";
+  const mode = state.config.sync.mode;
+  if (mode === "off") { s.className = "status err"; s.textContent = "Режим выключен"; return; }
+  if (!confirm("Загрузка перезапишет локальные данные меню. Продолжить?")) {
+    s.textContent = ""; return;
+  }
+  try {
+    const loaded = mode === "github" ? await _githubLoad() : await _urlLoad();
+    applyLoadedState(loaded);
+    s.className = "status ok"; s.textContent = "Загружено успешно.";
+  } catch (e) {
+    s.className = "status err"; s.textContent = "Ошибка загрузки: " + e.message;
+  }
+}
+async function syncSave() {
+  const s = $("sync-status"); s.className = "status"; s.textContent = "Сохраняю...";
+  const mode = state.config.sync.mode;
+  if (mode === "off") { s.className = "status err"; s.textContent = "Режим выключен"; return; }
+  try {
+    if (mode === "github") await _githubSave();
+    else await _urlSave();
+    s.className = "status ok"; s.textContent = "Сохранено на сервер.";
+  } catch (e) {
+    s.className = "status err"; s.textContent = "Ошибка сохранения: " + e.message;
+  }
+}
+
+/* =========================================================================
+   PAGINATION — measure content and split into A4-sized pages
+   ========================================================================= */
+const MM_TO_PX = 96 / 25.4;           // browser's assumed mm→px at 96dpi
+// Height available for category content inside one page, once the ministry
+// header + title + subtitle + column headers have been drawn (~60mm of the
+// 250mm frame inner height). Conservative margin to avoid overflow at edges.
+const PAGE_CONTENT_HEIGHT_MM = 185;
+const PAGE_CONTENT_HEIGHT_PX = PAGE_CONTENT_HEIGHT_MM * MM_TO_PX;
+
+let _probe = null;
+function getProbe() {
+  if (_probe && _probe.isConnected) return _probe;
+  _probe = document.createElement("div");
+  _probe.id = "_pagination_probe";
+  // Match the column width of the real menu-frame inner area.
+  // menu-page 210mm - padding 2*16mm = 178mm; minus frame border 2*2px + frame padding 2*7mm = 14mm → ~164mm
+  _probe.style.cssText =
+    "position:fixed;left:-99999px;top:0;width:164mm;padding:0;" +
+    "font-family:'PT Serif','Noto Serif Georgian',serif;" +
+    "visibility:hidden;pointer-events:none;";
+  document.body.appendChild(_probe);
+  return _probe;
+}
+function measureHtml(html) {
+  const p = getProbe();
+  p.innerHTML = html;
+  const h = p.offsetHeight;
+  p.innerHTML = "";
+  return h;
+}
+
+function buildItemHtml(it, lang) {
+  const cfg = state.config;
+  const name = it[lang] || it.ru || "";
+  const priceText = it.price ? (it.price + " " + cfg.currency) : "";
+  return `
+    <div class="m-item">
+      <div class="name"><span class="txt">${esc(name)}</span><span class="dots"></span></div>
+      <div class="portion">${handwrite(it.portion)}</div>
+      <div class="price">${handwrite(priceText)}</div>
+    </div>`;
+}
+
+function buildCategoryTitleHtml(cat, lang) {
+  return `<div class="category-title">${esc(cat.title[lang] || cat.title.ru)}</div>`;
+}
+
+function buildCategoryNoteHtml(cat, lang) {
+  if (cat.noteKey && state.notes[cat.noteKey] && state.notes[cat.noteKey][lang]) {
+    return `<div class="menu-note">${state.notes[cat.noteKey][lang]}</div>`;
+  }
+  return "";
+}
+
+function buildCategoryHtml(cat, lang) {
+  let html = buildCategoryTitleHtml(cat, lang);
+  cat.items.forEach(it => { html += buildItemHtml(it, lang); });
+  html += buildCategoryNoteHtml(cat, lang);
+  return html;
+}
+
+/**
+ * Walk a category item-by-item, returning an array of partial categories
+ * each small enough to fit inside pageAvailPx. The note stays with the last partial.
+ * firstAvailPx is the height budget for the first partial (which may start on a
+ * page that already has other content above it).
+ */
+function splitCatAcrossPages(cat, lang, pageAvailPx, firstAvailPx) {
+  const titleHtml = buildCategoryTitleHtml(cat, lang);
+  const titleH = measureHtml(titleHtml);
+  const noteHtml = buildCategoryNoteHtml(cat, lang);
+  const noteH = noteHtml ? measureHtml(noteHtml) : 0;
+
+  const partials = [];
+  let currentItems = [];
+  let currentH = titleH;
+  let isFirst = true;
+
+  cat.items.forEach((it, idx) => {
+    const itemH = measureHtml(buildItemHtml(it, lang));
+    const isLast = idx === cat.items.length - 1;
+    const avail = isFirst ? firstAvailPx : pageAvailPx;
+    const extraForNote = isLast ? noteH : 0;
+
+    if (currentH + itemH + extraForNote > avail && currentItems.length > 0) {
+      partials.push({ title: cat.title, items: currentItems, noteKey: null });
+      currentItems = [];
+      currentH = titleH;
+      isFirst = false;
+    }
+    currentItems.push(it);
+    currentH += itemH;
+  });
+
+  if (currentItems.length > 0) {
+    partials.push({ title: cat.title, items: currentItems, noteKey: cat.noteKey });
+  }
+  return partials;
+}
+
+function paginateCats(cats, lang, availablePx, extraUsedPx) {
+  const pages = [[]];
+  let curH = extraUsedPx || 0;
+  let pi = 0;
+
+  for (const cat of cats) {
+    const catH = measureHtml(buildCategoryHtml(cat, lang));
+
+    // Tall category — split across pages at item boundaries
+    if (catH > availablePx) {
+      const firstBudget = Math.max(availablePx - curH, availablePx * 0.25);
+      const parts = splitCatAcrossPages(cat, lang, availablePx, firstBudget);
+      parts.forEach((part, idx) => {
+        const partH = measureHtml(buildCategoryHtml(part, lang));
+        if (idx === 0) {
+          if (curH > 0 && pages[pi].length > 0 && curH + partH > availablePx) {
+            pages.push([]); pi++; curH = 0;
+          }
+          pages[pi].push(part);
+          curH += partH;
+        } else {
+          pages.push([]); pi++;
+          pages[pi].push(part);
+          curH = partH;
+        }
+      });
+      continue;
+    }
+
+    if (curH + catH > availablePx && pages[pi].length > 0) {
+      pages.push([]); pi++; curH = 0;
+    }
+    pages[pi].push(cat);
+    curH += catH;
+  }
+
+  return pages;
+}
+
+function renderPage(menuKey, lang) {
+  const cfg = state.config;
+  const data = state[menuKey];
+
+  // Bar: first page dedicated to infusions + promo block
+  if (menuKey === "bar" && data.length > 1 && cfg.promo && cfg.promo.enabled) {
+    const firstPage = buildPage(menuKey, lang, [data[0]], 0, true);
+    const restPages = paginateCats(data.slice(1), lang, PAGE_CONTENT_HEIGHT_PX, 0);
+    const restHtml = restPages.map((cats, i) =>
+      buildPage(menuKey, lang, cats, 1 + i, false)
+    ).join("");
+    return firstPage + restHtml;
+  }
+
+  const pagedCats = paginateCats(data, lang, PAGE_CONTENT_HEIGHT_PX, 0);
+  return pagedCats.map((cats, i) =>
+    buildPage(menuKey, lang, cats, i, false)
+  ).join("");
+}
+
+function buildPage(menuKey, lang, cats, pageIdx, includePromo) {
+  const cfg = state.config;
+  const cols = (menuKey === "bar" ? COL_LABELS_BAR : COL_LABELS)[lang] || COL_LABELS.ru;
+  const ministry = (cfg.ministry && cfg.ministry[lang]) || [];
+  const titles = (cfg.titles && cfg.titles[lang]) || { h1: "", h2_kitchen: "", h2_bar: "" };
+  const h1 = titles.h1 || "";
+  const h2 = (menuKey === "bar" ? titles.h2_bar : titles.h2_kitchen) || "";
+
+  const stampText = (lang === "ru" ? "УТВЕРЖДАЮ" : lang === "en" ? "APPROVED" : "დამოწმდა");
+  const stamp = cfg.stamp || {};
+  const ink = cfg.ink || "#1a3a8a";
+  const uniq = `${menuKey}-${lang}-${pageIdx}`;
+  // Logo centered in the stamp: viewBox 0..200, center (100,100).
+  // Reserve the top arc for УТВЕРЖДАЮ (rows ~20..50) and bottom (~160..180) for a line of rotation.
+  // Keep logo vertically centered around y=110 (just below geometric center to leave room for top text).
+  const logoW = 120, logoH = 60;
+  const logoX = (200 - logoW) / 2;
+  const logoY = 110 - logoH / 2;  // centered around y=110
+  const logoInner = stamp.dataUrl
+    ? `<image class="logo-in${stamp.tint ? ' tint' : ''}" href="${stamp.dataUrl}" x="${logoX}" y="${logoY}" width="${logoW}" height="${logoH}" preserveAspectRatio="xMidYMid meet"/>`
+    : `<text x="100" y="118" text-anchor="middle" font-family="'PT Serif',serif" font-size="15" font-weight="700" fill="${ink}" letter-spacing="2">${esc(cfg.name)}</text>`;
+  const stampHtml = `
+    <div class="stamp-seal" style="width:${stamp.sizeMm}mm;height:${stamp.sizeMm}mm;transform:rotate(${stamp.rotation}deg);opacity:${(stamp.opacity||80)/100}">
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Top arc: from left (30,100) CLOCKWISE to right (170,100) via TOP of circle.
+               sweep-flag=1 in SVG's y-down coords makes the arc pass above the line,
+               text along it reads upright from the outside. -->
+          <path id="arc-${uniq}" d="M 30 100 A 70 70 0 0 1 170 100" fill="none"/>
+        </defs>
+        <circle cx="100" cy="100" r="95" fill="none" stroke="${ink}" stroke-width="3"/>
+        <circle cx="100" cy="100" r="86" fill="none" stroke="${ink}" stroke-width="1"/>
+        <text font-family="'PT Serif',serif" font-size="16" font-weight="700" fill="${ink}" letter-spacing="3">
+          <textPath href="#arc-${uniq}" startOffset="50%" text-anchor="middle">${esc(stampText)}</textPath>
+        </text>
+        <!-- Side stars at equator, outside the logo area -->
+        <text x="14" y="106" font-size="12" fill="${ink}">★</text>
+        <text x="186" y="106" font-size="12" fill="${ink}" text-anchor="end">★</text>
+        ${logoInner}
+      </svg>
+    </div>`;
+
+  let categoriesHtml = "";
+  cats.forEach((cat, ci) => {
+    categoriesHtml += `<div class="category-title">${esc(cat.title[lang] || cat.title.ru)}</div>`;
+    cat.items.forEach(it => {
+      const name = it[lang] || it.ru || "";
+      const priceText = it.price ? (it.price + " " + cfg.currency) : "";
+      categoriesHtml += `
+        <div class="m-item">
+          <div class="name"><span class="txt">${esc(name)}</span><span class="dots"></span></div>
+          <div class="portion">${handwrite(it.portion)}</div>
+          <div class="price">${handwrite(priceText)}</div>
+        </div>`;
+    });
+    // optional note (for infusions) comes AFTER items so reader sees prices first, then the flavour assortment
+    if (cat.noteKey && state.notes[cat.noteKey] && state.notes[cat.noteKey][lang]) {
+      categoriesHtml += `<div class="menu-note">${state.notes[cat.noteKey][lang]}</div>`;
+    }
+  });
+  // Promo block goes at the bottom of the first bar page, below the infusion assortment
+  if (includePromo && cfg.promo && cfg.promo.enabled) {
+    categoriesHtml += renderPromoBlock(lang);
+  }
+
+  const pageClass = "menu-page" + (lang === "ge" ? " geo" : "");
+
+  return `
+    <div class="${pageClass}" data-menu="${menuKey}" data-lang="${lang}" data-page="${pageIdx}">
+      <div class="menu-frame">
+        ${stampHtml}
+        <div class="ministry-header">
+          <div class="country">${esc(ministry[0] || "")}</div>
+          <div class="ministry">${esc(ministry[1] || "")}</div>
+          <div class="restaurant">${esc(ministry[2] || "")}</div>
+        </div>
+        <h1 class="mtitle">${esc(h1)}</h1>
+        <p class="msub${h2 ? "" : " empty"}">${esc(h2)}</p>
+        <div class="mcols">
+          <div class="c1">${esc(cols[0])}</div>
+          <div class="c2">${esc(cols[1])}</div>
+          <div class="c3">${esc(cols[2])}</div>
+        </div>
+        ${categoriesHtml}
+      </div>
+    </div>
+  `;
+}
+
+function renderPromoBlock(lang) {
+  const cfg = state.config;
+  const promo = cfg.promo || {};
+  if (!promo.enabled) return "";
+  const banner = (promo.banner && promo.banner[lang]) || "";
+  const headline = (promo.headline && promo.headline[lang]) || "";
+  const subtitle = (promo.subtitle && promo.subtitle[lang]) || "";
+  const qrCaption = (promo.qrCaption && promo.qrCaption[lang]) || "";
+  const now = String(promo.counterNow || "009").padStart(3, "0").slice(-3);
+  const goal = String(promo.counterGoal || "010").padStart(3, "0").slice(-3);
+  const reels = (digits, jackpot) => digits.split("").map(d =>
+    `<div class="slot-reel${jackpot ? ' jackpot' : ''}">${esc(d)}</div>`
+  ).join("");
+  const showQr = cfg.qr && cfg.qr.trim();
+
+  return `
+    <div class="promo-inline">
+      <div class="promo-left">
+        <div class="promo-banner-inline">${esc(banner)}</div>
+        <div class="promo-headline-inline">${esc(headline)}</div>
+        <div class="slot-machine-inline">
+          ${reels(now, true)}
+          <div class="slot-sep">/</div>
+          ${reels(goal, false)}
+        </div>
+        <div class="promo-subtitle-inline">${esc(subtitle)}</div>
+      </div>
+      ${showQr ? `
+        <div class="promo-qr-inline">
+          <div class="qr-slot" data-url="${esc(cfg.qr)}"></div>
+          <div class="cap">${esc(qrCaption)}</div>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function renderAllPages() {
+  const flags = {
+    "kitchen-ru": $("pg-kitchen-ru").checked,
+    "kitchen-en": $("pg-kitchen-en").checked,
+    "kitchen-ge": $("pg-kitchen-ge").checked,
+    "bar-ru": $("pg-bar-ru").checked,
+    "bar-en": $("pg-bar-en").checked,
+    "bar-ge": $("pg-bar-ge").checked,
+  };
+  const order = [
+    ["kitchen","ru"], ["kitchen","en"], ["kitchen","ge"],
+    ["bar","ru"], ["bar","en"], ["bar","ge"]
+  ];
+  let html = "";
+  order.forEach(([m,l]) => {
+    if (flags[m+"-"+l]) html += renderPage(m, l);
+  });
+  $("pages").innerHTML = html;
+  // render QR codes
+  document.querySelectorAll(".qr-slot").forEach(slot => {
+    const url = slot.dataset.url || "";
+    const c = document.createElement("canvas");
+    slot.appendChild(c);
+    if (window.QRCode && url) {
+      QRCode.toCanvas(c, url, { margin: 1, width: 120, color: { dark: "#0a0a0a", light: "#ffffff" } }, () => {});
+    }
+  });
+}
+
+function rerenderPreview() {
+  renderAllPages();
+}
+
+/* ==========================================================================
+   TRANSLATION (Anthropic / OpenAI)
+   ========================================================================== */
+const TRANSLATE_SYSTEM = `You translate a Russian restaurant menu item name into English and Georgian.
+Preserve culinary terms common to post-Soviet cuisine: Selyodka → Herring, Shuba → Herring under a fur coat, Salo → Salo, Borscht, Pelmeni, Vareniki, Forshmak, Chacha, Ёрш (beer+vodka) → Yorsh, Настойка → Infusion, Ткемали → Tkemali, etc. Keep brand names as-is (Jameson, Aperol, Martini, Olmeca). For Georgian, use natural culinary Georgian (proper Georgian term when one exists, not transliteration).
+Respond ONLY with compact JSON: {"en":"...","ge":"..."}. No commentary, no markdown fences.`;
+
+function extractJson(text) {
+  if (!text) return {};
+  // strip ```json fences if any
+  const m = text.match(/\{[\s\S]*\}/);
+  if (!m) return {};
+  try { return JSON.parse(m[0]); } catch (e) { return {}; }
+}
+
+async function anthropicTranslate(ruText) {
+  const key = (state.config.apikeys.anthropic || "").trim();
+  if (!key) throw new Error("Нет Anthropic API ключа");
+  const model = state.config.model || "claude-haiku-4-5-20251001";
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 300,
+      temperature: 0.2,
+      system: TRANSLATE_SYSTEM,
+      messages: [{ role: "user", content: "Russian: " + ruText }]
+    })
+  });
+  if (!r.ok) {
+    const err = await r.text();
+    throw new Error("Anthropic " + r.status + ": " + err.slice(0, 300));
+  }
+  const j = await r.json();
+  const content = j.content?.[0]?.text || "";
+  return extractJson(content);
+}
+
+async function openaiTranslate(ruText) {
+  const key = (state.config.apikeys.openai || "").trim();
+  if (!key) throw new Error("Нет OpenAI API ключа");
+  const model = state.config.model || "gpt-4o-mini";
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
+    body: JSON.stringify({
+      model, temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: TRANSLATE_SYSTEM },
+        { role: "user", content: "Russian: " + ruText }
+      ]
+    })
+  });
+  if (!r.ok) {
+    const err = await r.text();
+    throw new Error("OpenAI " + r.status + ": " + err.slice(0, 300));
+  }
+  const j = await r.json();
+  const content = j.choices?.[0]?.message?.content || "{}";
+  return extractJson(content);
+}
+
+async function translateOne(ruText) {
+  const prov = state.config.provider || "anthropic";
+  return prov === "anthropic" ? anthropicTranslate(ruText) : openaiTranslate(ruText);
+}
+
+/* ==========================================================================
+   POSTER POS SYNC
+   ========================================================================== */
+function posterUrl(method) {
+  // Clean up host: strip protocol, trailing slash, leading/trailing whitespace, any path.
+  const raw = (state.config.poster.host || "joinposter.com").trim();
+  const host = raw
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/.*$/, "")           // drop anything after first /
+    .replace(/\/$/, "");
+  const token = encodeURIComponent(state.config.poster.token || "");
+  return `https://${host}/api/${method}?token=${token}&format=json`;
+}
+
+async function posterFetch(method) {
+  const url = posterUrl(method);
+  const proxy = (state.config.poster.proxy || "").trim();
+  const finalUrl = proxy ? (proxy + encodeURIComponent(url)) : url;
+  const r = await fetch(finalUrl);
+  if (!r.ok) throw new Error(`Poster ${method} HTTP ${r.status}`);
+  const j = await r.json();
+  if (j.error) throw new Error(`Poster ${method}: ${j.error.message || JSON.stringify(j.error)}`);
+  return j.response || [];
+}
+
+async function posterTest() {
+  const s = $("poster-status");
+  s.className = "status"; s.textContent = "Проверяю...";
+  if (!state.config.poster.token) { s.className="status err"; s.textContent="Введите токен"; return; }
+  try {
+    const cats = await posterFetch("menu.getCategories");
+    const prods = await posterFetch("menu.getProducts");
+    s.className = "status ok";
+    s.textContent = `OK: категорий ${cats.length}, блюд ${prods.length}`;
+  } catch (e) {
+    s.className = "status err";
+    s.textContent = "Ошибка: " + e.message + (e.message.includes("Failed to fetch") ? " (похоже на CORS — укажите proxy URL)" : "");
+  }
+}
+
+/**
+ * Определяет в какое из двух меню (kitchen/bar) класть категорию Poster.
+ * По умолчанию — по имени категории. Можно переопределить вручную после импорта.
+ */
+function guessMenu(categoryName) {
+  const n = (categoryName || "").toLowerCase();
+  const barKeywords = ["бар","напит","коктейл","вино","пиво","виски","водка","джин","ром","чача","текил","ликер","ликёр","коньяк","настойк","ёрш","ерш","вермут","ракия","шампан","кофе","чай","лимонад","сок","drink","bar","cocktail"];
+  return barKeywords.some(k => n.includes(k)) ? "bar" : "kitchen";
+}
+
+/**
+ * Возвращает граммовку из Poster-блюда. Poster хранит вес/объём в разных полях
+ * в зависимости от типа продукта.
+ */
+function extractPortion(p) {
+  // возможные поля: weight, out, product_production_description, workshop
+  if (p.weight && +p.weight > 0) return String(p.weight).replace(/\.0+$/,"") + "г";
+  if (p.out && +p.out > 0) return String(p.out).replace(/\.0+$/,"") + "г";
+  return "";
+}
+
+function extractPrice(p) {
+  // Poster: price может быть объект {1:"50000"} (копейки), число, или строка
+  let raw = p.price;
+  if (raw == null) return "";
+  if (typeof raw === "object") {
+    // берём первое значение (обычно спот-цена основного прейскуранта)
+    const vals = Object.values(raw).filter(v => v && +v > 0);
+    if (!vals.length) return "";
+    raw = vals[0];
+  }
+  let n = +raw;
+  if (!n) return "";
+  // если значение похоже на копейки/тетри (*100), нормализуем
+  if (n > 1000 && n % 100 === 0) n = n / 100;
+  return String(+n.toFixed(2));
+}
+
+async function posterSync() {
+  const s = $("poster-status");
+  s.className = "status"; s.textContent = "Синхронизирую...";
+  if (!state.config.poster.token) { s.className="status err"; s.textContent="Введите токен"; return; }
+  let cats, prods;
+  try {
+    cats = await posterFetch("menu.getCategories");
+    prods = await posterFetch("menu.getProducts");
+  } catch (e) {
+    s.className = "status err";
+    s.textContent = "Ошибка: " + e.message + (e.message.includes("Failed to fetch") ? " (CORS — укажите proxy)" : "");
+    return;
+  }
+
+  const mode = state.config.poster.mode || "merge";
+
+  // Индексы существующих категорий/позиций по posterId
+  const idxCatByPid = {};
+  ["kitchen","bar"].forEach(m => {
+    state[m].forEach((c, ci) => {
+      if (c.posterId) idxCatByPid[c.posterId] = { m, ci };
+    });
+  });
+  const idxItemByPid = {};
+  ["kitchen","bar"].forEach(m => {
+    state[m].forEach((c, ci) => {
+      c.items.forEach((it, ii) => {
+        if (it.posterId) idxItemByPid[it.posterId] = { m, ci, ii };
+      });
+    });
+  });
+
+  // Полная замена — очистим всё
+  if (mode === "replace") {
+    state.kitchen = [];
+    state.bar = [];
+  }
+
+  // Обработаем категории
+  const catMap = {}; // posterCategoryId → {m, ci}
+  cats.forEach(pc => {
+    const pid = String(pc.category_id);
+    const name = pc.category_name || "Без названия";
+    const targetMenu = guessMenu(name);
+
+    // если категория уже была и не delete, берём её
+    if (idxCatByPid[pid] && mode !== "replace") {
+      const ref = idxCatByPid[pid];
+      if (mode === "overwrite-ru") state[ref.m][ref.ci].title.ru = name;
+      catMap[pid] = ref;
+      return;
+    }
+    // добавляем новую
+    const cat = {
+      posterId: pid,
+      title: { ru: name, en: "", ge: "" },
+      items: []
+    };
+    state[targetMenu].push(cat);
+    catMap[pid] = { m: targetMenu, ci: state[targetMenu].length - 1 };
+  });
+
+  // Обработаем блюда
+  let added = 0, updated = 0;
+  prods.forEach(p => {
+    const pid = String(p.product_id);
+    const name = p.product_name || "";
+    if (!name) return;
+    const catId = String(p.menu_category_id || p.category_id || "");
+    const catRef = catMap[catId];
+    if (!catRef) return; // категория не найдена
+
+    const portion = extractPortion(p);
+    const price = extractPrice(p);
+
+    if (idxItemByPid[pid] && mode !== "replace") {
+      const ref = idxItemByPid[pid];
+      const it = state[ref.m][ref.ci].items[ref.ii];
+      if (mode === "overwrite-ru") it.ru = name;
+      if (portion) it.portion = portion;
+      if (price) it.price = price;
+      updated++;
+    } else {
+      state[catRef.m][catRef.ci].items.push({
+        posterId: pid,
+        ru: name, en: "", ge: "",
+        portion, price
+      });
+      added++;
+    }
+  });
+
+  saveState();
+  renderEditor();
+  rerenderPreview();
+  s.className = "status ok";
+  s.textContent = `Готово: добавлено ${added}, обновлено ${updated}. Не забудьте перевести новые позиции.`;
+}
+
+async function translateBatch(onlyEmpty) {
+  const status = $("translate-status");
+  status.className = "status"; status.textContent = "";
+  const prov = state.config.provider || "anthropic";
+  const key = (state.config.apikeys[prov] || "").trim();
+  if (!key) {
+    status.className = "status err";
+    status.textContent = `Сначала введите API ключ для ${prov === "anthropic" ? "Anthropic" : "OpenAI"} ↑`;
+    return;
+  }
+  // collect tasks
+  const tasks = [];
+  ["kitchen","bar"].forEach(m => {
+    state[m].forEach((cat, ci) => {
+      // titles
+      if (!onlyEmpty || !cat.title.en || !cat.title.ge) {
+        tasks.push({ kind:"title", m, ci, ru: cat.title.ru });
+      }
+      cat.items.forEach((it, ii) => {
+        if (!it.ru) return;
+        if (!onlyEmpty || !it.en || !it.ge) {
+          tasks.push({ kind:"item", m, ci, ii, ru: it.ru });
+        }
+      });
+    });
+  });
+  if (!tasks.length) { status.textContent = "Нечего переводить."; return; }
+  status.textContent = `Перевожу 0 / ${tasks.length}...`;
+  let ok = 0, err = 0;
+  for (let i = 0; i < tasks.length; i++) {
+    const t = tasks[i];
+    try {
+      const res = await translateOne(t.ru);
+      if (t.kind === "title") {
+        if (!onlyEmpty || !state[t.m][t.ci].title.en) state[t.m][t.ci].title.en = res.en || state[t.m][t.ci].title.en;
+        if (!onlyEmpty || !state[t.m][t.ci].title.ge) state[t.m][t.ci].title.ge = res.ge || state[t.m][t.ci].title.ge;
+      } else {
+        if (!onlyEmpty || !state[t.m][t.ci].items[t.ii].en) state[t.m][t.ci].items[t.ii].en = res.en || state[t.m][t.ci].items[t.ii].en;
+        if (!onlyEmpty || !state[t.m][t.ci].items[t.ii].ge) state[t.m][t.ci].items[t.ii].ge = res.ge || state[t.m][t.ci].items[t.ii].ge;
+      }
+      ok++;
+    } catch (e) {
+      err++;
+      console.warn("translate fail", t, e.message);
+    }
+    status.textContent = `Перевожу ${i+1} / ${tasks.length}  · ok ${ok} · err ${err}`;
+    if ((i+1) % 5 === 0) { saveState(); renderEditor(); rerenderPreview(); }
+  }
+  saveState(); renderEditor(); rerenderPreview();
+  status.className = "status " + (err ? "err" : "ok");
+  status.textContent = `Готово: ${ok} успешно, ${err} ошибок.`;
+}
+
+/* ==========================================================================
+   WIRE UP
+   ========================================================================== */
+function wire() {
+  // tabs (kitchen/bar)
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    b.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      currentTab = b.dataset.tab;
+      document.querySelectorAll(".tab-panel").forEach(p => p.style.display = "none");
+      $("editor-" + currentTab).style.display = "";
+    });
+  });
+
+  // lang tabs (preview scroll)
+  document.querySelectorAll("#lang-tabs button").forEach(b => {
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#lang-tabs button").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      const { menu, lang } = b.dataset;
+      const pg = document.querySelector(`.menu-page[data-menu="${menu}"][data-lang="${lang}"]`);
+      if (pg) pg.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
+  // page toggles
+  ["pg-kitchen-ru","pg-kitchen-en","pg-kitchen-ge","pg-bar-ru","pg-bar-en","pg-bar-ge"].forEach(id => {
+    $(id).addEventListener("change", rerenderPreview);
+  });
+
+  // buttons
+  $("btn-print").addEventListener("click", () => window.print());
+  $("btn-reshuffle").addEventListener("click", rerenderPreview);
+  $("btn-translate-empty").addEventListener("click", () => translateBatch(true));
+  $("btn-translate-all").addEventListener("click", () => {
+    if (!confirm("Перевести ВСЕ позиции заново (перезаписать существующие EN/GE)?")) return;
+    translateBatch(false);
+  });
+  $("btn-save").addEventListener("click", () => {
+    // Export without secrets so the file is safe to commit / share
+    const blob = new Blob([JSON.stringify(stateWithoutSecrets(), null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "menu-" + new Date().toISOString().slice(0,10) + ".json";
+    a.click();
+  });
+  $("btn-load").addEventListener("click", () => $("file-load").click());
+  $("file-load").addEventListener("change", e => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = ev => {
+      try { state = JSON.parse(ev.target.result); saveState(); renderConfig(); renderEditor(); rerenderPreview(); }
+      catch (err) { alert("Не удалось прочитать JSON: " + err.message); }
+    };
+    rd.readAsText(f);
+  });
+  $("btn-reset").addEventListener("click", () => {
+    if (!confirm("Сбросить все данные меню к значениям по умолчанию?")) return;
+    state = JSON.parse(JSON.stringify(DEFAULTS));
+    saveState(); renderConfig(); renderEditor(); rerenderPreview();
+  });
+
+  // stamp file upload
+  $("cfg-stamp-file").addEventListener("change", e => {
+    const f = e.target.files[0]; if (!f) return;
+    const isSvg = /svg/i.test(f.type) || /\.svg$/i.test(f.name);
+    const rd = new FileReader();
+    rd.onload = ev => {
+      let dataUrl;
+      if (isSvg) {
+        // sanitize CorelDRAW/Inkscape SVG so it renders inside <img>
+        let text = ev.target.result;
+        // remove DOCTYPE (blocked in img data: urls for security)
+        text = text.replace(/<!DOCTYPE[^>]*>/gi, "");
+        // remove external stylesheet PI
+        text = text.replace(/<\?xml-stylesheet[^?]*\?>/gi, "");
+        // ensure an xmlns is present (old CorelDRAW files sometimes drop it on re-export)
+        if (!/xmlns\s*=/i.test(text)) {
+          text = text.replace(/<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        // inject a default fill for class-styled paths that relied on external CSS
+        const styleTag = '<style type="text/css">path,polygon,rect,circle,ellipse,line{fill:#000}</style>';
+        if (/<svg[^>]*>/i.test(text)) {
+          text = text.replace(/(<svg[^>]*>)/i, "$1" + styleTag);
+        }
+        // base64-encode (handling UTF-8 safely)
+        const bytes = new TextEncoder().encode(text);
+        let binary = "";
+        bytes.forEach(b => binary += String.fromCharCode(b));
+        dataUrl = "data:image/svg+xml;base64," + btoa(binary);
+        state.config.stamp.mime = "image/svg+xml";
+      } else {
+        dataUrl = ev.target.result;
+        state.config.stamp.mime = f.type;
+      }
+      state.config.stamp.dataUrl = dataUrl;
+      saveState(); renderStampPreview(); rerenderPreview();
+    };
+    rd.onerror = () => alert("Не удалось прочитать файл: " + (rd.error?.message || ""));
+    if (isSvg) rd.readAsText(f); else rd.readAsDataURL(f);
+  });
+  $("btn-stamp-clear").addEventListener("click", () => {
+    state.config.stamp.dataUrl = "";
+    state.config.stamp.mime = "";
+    $("cfg-stamp-file").value = "";
+    saveState(); renderStampPreview(); rerenderPreview();
+  });
+  ["cfg-stamp-size","cfg-stamp-rot","cfg-stamp-opacity"].forEach(id => {
+    $(id).addEventListener("input", e => {
+      const v = +e.target.value;
+      if (id === "cfg-stamp-size") state.config.stamp.sizeMm = v;
+      if (id === "cfg-stamp-rot") state.config.stamp.rotation = v;
+      if (id === "cfg-stamp-opacity") {
+        state.config.stamp.opacity = v;
+        $("cfg-stamp-opacity-val").textContent = v + "%";
+      }
+      saveState(); rerenderPreview();
+    });
+  });
+  $("cfg-stamp-tint").addEventListener("change", e => {
+    state.config.stamp.tint = e.target.checked;
+    saveState(); rerenderPreview();
+  });
+
+  // poster integration removed from UI — bindings deleted
+
+  // keyboard
+  document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); $("btn-save").click(); }
+  });
+}
+
+/* ==========================================================================
+   BOOT
+   ========================================================================== */
+renderConfig();
+bindConfig();
+renderEditor();
+rerenderPreview();
+wire();
+
+// Fonts load asynchronously from Google Fonts. Re-run the paginator once they
+// are in place, otherwise early measurements use the fallback serif and
+// content may look slightly misplaced on first render.
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => rerenderPreview());
+}
+
+// Auto-load from server on open (if the user explicitly opted in)
+if (state.config.sync && state.config.sync.autoload && state.config.sync.mode !== "off") {
+  const statusEl = $("sync-status");
+  const mode = state.config.sync.mode;
+  (async () => {
+    try {
+      statusEl.className = "status"; statusEl.textContent = "Автозагрузка...";
+      const loaded = mode === "github" ? await _githubLoad() : await _urlLoad();
+      applyLoadedState(loaded);
+      statusEl.className = "status ok"; statusEl.textContent = "Автозагрузка: OK.";
+    } catch (e) {
+      statusEl.className = "status err";
+      statusEl.textContent = "Автозагрузка не удалась: " + e.message;
+    }
+  })();
+}
+</script>
+</body>
+</html>
