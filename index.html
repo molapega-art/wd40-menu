@@ -1145,6 +1145,8 @@ function renderConfig() {
   $("cfg-sync-url-save").value = sy.url?.saveUrl || "";
   $("cfg-sync-url-method").value = sy.url?.method || "PUT";
   $("cfg-sync-url-auth").value = sy.url?.authHeader || "";
+  // Pre-fill owner/repo from the current github.io URL so the user only enters PAT
+  autofillGithubFromUrl();
   $("cfg-sync-gh-owner").value = sy.github?.owner || "";
   $("cfg-sync-gh-repo").value = sy.github?.repo || "";
   $("cfg-sync-gh-branch").value = sy.github?.branch || "main";
@@ -1211,6 +1213,24 @@ function bindConfig() {
   // Sync bindings
   $("cfg-sync-mode").addEventListener("change", e => {
     state.config.sync.mode = e.target.value;
+    if (state.config.sync.mode === "github") {
+      autofillGithubFromUrl();
+      const g = state.config.sync.github || {};
+      $("cfg-sync-gh-owner").value  = g.owner || "";
+      $("cfg-sync-gh-repo").value   = g.repo || "";
+      $("cfg-sync-gh-branch").value = g.branch || "main";
+      $("cfg-sync-gh-path").value   = g.path || "menu.json";
+    } else if (state.config.sync.mode === "url") {
+      // Pre-fill default Load URL pointing to the menu.json next to the app
+      const host = window.location.hostname;
+      const m = host.match(/^([a-z0-9-]+)\.github\.io$/i);
+      const pathParts = (window.location.pathname || "").split("/").filter(Boolean);
+      if (m && pathParts.length >= 1 && !state.config.sync.url.loadUrl) {
+        state.config.sync.url.loadUrl =
+          `https://raw.githubusercontent.com/${m[1]}/${pathParts[0]}/main/menu.json`;
+        $("cfg-sync-url-load").value = state.config.sync.url.loadUrl;
+      }
+    }
     syncRefreshModeUI();
     saveState();
   });
@@ -1465,6 +1485,31 @@ function syncRefreshModeUI() {
   const m = state.config.sync.mode;
   $("sync-url-fields").style.display    = m === "url"    ? "" : "none";
   $("sync-github-fields").style.display = m === "github" ? "" : "none";
+}
+
+/**
+ * If the page is served from GitHub Pages (https://OWNER.github.io/REPO/),
+ * pre-fill the GitHub sync fields automatically so the user only needs to
+ * paste a PAT.
+ */
+function autofillGithubFromUrl() {
+  try {
+    const g = state.config.sync.github;
+    if (!g) return;
+    const host = window.location.hostname || "";
+    const m = host.match(/^([a-z0-9-]+)\.github\.io$/i);
+    if (!m) return;
+    const ownerFromUrl = m[1];
+    const pathParts = (window.location.pathname || "").split("/").filter(Boolean);
+    if (pathParts.length < 1) return;
+    const repoFromUrl = pathParts[0];
+    let changed = false;
+    if (!g.owner)  { g.owner  = ownerFromUrl; changed = true; }
+    if (!g.repo)   { g.repo   = repoFromUrl;  changed = true; }
+    if (!g.branch) { g.branch = "main";       changed = true; }
+    if (!g.path)   { g.path   = "menu.json";  changed = true; }
+    if (changed && typeof saveState === "function") saveState();
+  } catch (e) { /* ignore */ }
 }
 
 /** Strip secrets (API keys, PATs, Poster tokens) before uploading to a server. */
@@ -1982,8 +2027,19 @@ function rerenderPreview() {
 /* ==========================================================================
    TRANSLATION (Anthropic / OpenAI)
    ========================================================================== */
-const TRANSLATE_SYSTEM = `You translate a Russian restaurant menu item name into English and Georgian.
-Preserve culinary terms common to post-Soviet cuisine: Selyodka → Herring, Shuba → Herring under a fur coat, Salo → Salo, Borscht, Pelmeni, Vareniki, Forshmak, Chacha, Ёрш (beer+vodka) → Yorsh, Настойка → Infusion, Ткемали → Tkemali, etc. Keep brand names as-is (Jameson, Aperol, Martini, Olmeca). For Georgian, use natural culinary Georgian (proper Georgian term when one exists, not transliteration).
+const TRANSLATE_SYSTEM = `You translate Russian restaurant menu text to English and Georgian.
+
+The input may be one of:
+  - a single dish or drink name (e.g. "Селёдка под шубой")
+  - a section heading (e.g. "Закуски", "Сладкие")
+  - a list of items separated by " · " (e.g. "Лимончелло · Вишня · Малина")
+
+Rules:
+- For lists, keep the same " · " separator and the same order in the translation.
+- Preserve culinary terms common to post-Soviet cuisine: Selyodka → Herring, Shuba → Herring under a fur coat, Salo → Salo, Borscht, Pelmeni, Vareniki, Forshmak, Chacha, Ёрш (beer+vodka) → Yorsh, Настойка → Infusion, Ткемали → Tkemali.
+- Keep brand names as-is (Jameson, Aperol, Martini, Olmeca, Beefeater, Bombay, etc.).
+- For Georgian, use natural culinary Georgian (proper Georgian term where one exists, not transliteration).
+
 Respond ONLY with compact JSON: {"en":"...","ge":"..."}. No commentary, no markdown fences.`;
 
 function extractJson(text) {
@@ -2256,6 +2312,16 @@ async function translateBatch(onlyEmpty) {
       });
     });
   });
+  // Infusion sections (titles + comma-separated items lists)
+  const infusionSections = state.notes?.bar_infusions?.sections || [];
+  infusionSections.forEach((sec, si) => {
+    if (sec.title?.ru && (!onlyEmpty || !sec.title.en || !sec.title.ge)) {
+      tasks.push({ kind: "infusion-title", si, ru: sec.title.ru });
+    }
+    if (sec.items?.ru && (!onlyEmpty || !sec.items.en || !sec.items.ge)) {
+      tasks.push({ kind: "infusion-items", si, ru: sec.items.ru });
+    }
+  });
   if (!tasks.length) { status.textContent = "Нечего переводить."; return; }
   status.textContent = `Перевожу 0 / ${tasks.length}...`;
   let ok = 0, err = 0;
@@ -2266,9 +2332,21 @@ async function translateBatch(onlyEmpty) {
       if (t.kind === "title") {
         if (!onlyEmpty || !state[t.m][t.ci].title.en) state[t.m][t.ci].title.en = res.en || state[t.m][t.ci].title.en;
         if (!onlyEmpty || !state[t.m][t.ci].title.ge) state[t.m][t.ci].title.ge = res.ge || state[t.m][t.ci].title.ge;
-      } else {
+      } else if (t.kind === "item") {
         if (!onlyEmpty || !state[t.m][t.ci].items[t.ii].en) state[t.m][t.ci].items[t.ii].en = res.en || state[t.m][t.ci].items[t.ii].en;
         if (!onlyEmpty || !state[t.m][t.ci].items[t.ii].ge) state[t.m][t.ci].items[t.ii].ge = res.ge || state[t.m][t.ci].items[t.ii].ge;
+      } else if (t.kind === "infusion-title") {
+        const sec = state.notes.bar_infusions.sections[t.si];
+        if (sec) {
+          if (!onlyEmpty || !sec.title.en) sec.title.en = res.en || sec.title.en;
+          if (!onlyEmpty || !sec.title.ge) sec.title.ge = res.ge || sec.title.ge;
+        }
+      } else if (t.kind === "infusion-items") {
+        const sec = state.notes.bar_infusions.sections[t.si];
+        if (sec) {
+          if (!onlyEmpty || !sec.items.en) sec.items.en = res.en || sec.items.en;
+          if (!onlyEmpty || !sec.items.ge) sec.items.ge = res.ge || sec.items.ge;
+        }
       }
       ok++;
     } catch (e) {
