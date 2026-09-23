@@ -70,6 +70,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   .category-block { border: 1px dashed #bbb; border-radius: 5px; padding: 8px; margin-bottom: 10px; background: #fff; }
   .category-block > .cat-head { display: flex; gap: 4px; align-items: center; margin-bottom: 6px; }
   .category-block > .cat-head input { flex: 1; font-weight: 600; font-size: 12px; }
+  .category-block > .cat-head .mvbtn { padding: 1px 6px; font-size: 11px; line-height: 1.2; }
+  .category-block > .cat-head .mvbtn:disabled { opacity: 0.3; cursor: default; }
+  .category-block > .cat-head .hl-toggle { flex: 0 0 auto; font-size: 11px; color: #555; white-space: nowrap; cursor: pointer; }
+  .category-block > .cat-head .hl-toggle input { flex: none; margin: 0 2px 0 0; vertical-align: middle; }
+  .category-block.highlighted { border: 2px solid var(--ink-blue); }
   .item-row { display: grid; grid-template-columns: 1fr 1fr 1fr 60px 60px 20px; gap: 4px; margin-bottom: 3px; align-items: center; }
   .item-row input { font-size: 11px; padding: 3px 5px; border: 1px solid #d8d6ce; border-radius: 3px; min-width: 0; }
   .item-row .xbtn { background: none; border: none; color: #a66; cursor: pointer; padding: 0; font-size: 14px; line-height: 1; }
@@ -195,6 +200,27 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   .category-title::before, .category-title::after {
     content: "◆"; font-size: 8pt; margin: 0 8px; vertical-align: middle;
   }
+
+  /* ==== HIGHLIGHTED CATEGORY (галочка «рамка» в редакторе) ====
+     Отрицательные поля по бокам = рамка + padding, чтобы колонки «Норма/Цена»
+     остались на одной линии с шапкой таблицы. */
+  .cat-highlight {
+    border: 2px solid var(--ink-blue);
+    border-radius: 3mm;
+    margin: 4mm calc(-3mm - 2px) 3mm;
+    padding: 0 3mm 2mm;
+    position: relative;
+  }
+  .cat-highlight::before, .cat-highlight::after {
+    content: "★";
+    position: absolute;
+    top: -9px; background: var(--paper);
+    color: var(--ink-blue); font-size: 12pt;
+    padding: 0 5px; line-height: 18px;
+  }
+  .cat-highlight::before { left: 10mm; }
+  .cat-highlight::after { right: 10mm; }
+  .cat-highlight .category-title { color: var(--ink-blue); padding-top: 3mm; }
 
   .m-item {
     display: grid;
@@ -1344,12 +1370,16 @@ function bindConfig() {
 function renderEditorFor(menuKey) {
   const cont = $("editor-" + menuKey);
   cont.innerHTML = "";
-  state[menuKey].forEach((cat, ci) => {
+  const cats = state[menuKey];
+  cats.forEach((cat, ci) => {
     const block = document.createElement("div");
-    block.className = "category-block";
+    block.className = "category-block" + (cat.highlight ? " highlighted" : "");
     block.innerHTML = `
       <div class="cat-head">
+        <button class="mvbtn" data-dir="-1" title="Переместить выше"${ci === 0 ? " disabled" : ""}>▲</button>
+        <button class="mvbtn" data-dir="1" title="Переместить ниже"${ci === cats.length - 1 ? " disabled" : ""}>▼</button>
         <input value="${esc(cat.title.ru)}" data-field="title-ru" placeholder="Категория RU">
+        <label class="hl-toggle" title="Выделить блок рамкой в меню"><input type="checkbox" class="hl-check"${cat.highlight ? " checked" : ""}>рамка</label>
         <button class="xbtn" title="Удалить категорию">✕</button>
       </div>
       <div class="row" style="margin:0 0 6px">
@@ -1371,6 +1401,19 @@ function renderEditorFor(menuKey) {
       if (confirm("Удалить категорию «" + cat.title.ru + "»?")) {
         state[menuKey].splice(ci, 1); saveState(); renderEditor(); rerenderPreview();
       }
+    });
+    block.querySelectorAll(".cat-head .mvbtn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const to = ci + Number(btn.dataset.dir);
+        if (to < 0 || to >= cats.length) return;
+        [cats[ci], cats[to]] = [cats[to], cats[ci]];
+        saveState(); renderEditor(); rerenderPreview();
+      });
+    });
+    block.querySelector(".cat-head .hl-check").addEventListener("change", e => {
+      cat.highlight = e.target.checked;
+      block.classList.toggle("highlighted", cat.highlight);
+      saveState(); rerenderPreview();
     });
     block.querySelector(".add-item").addEventListener("click", () => {
       cat.items.push({ru:"", en:"", ge:"", portion:"", price:""});
@@ -1770,11 +1813,15 @@ function buildCategoryNoteHtml(cat, lang) {
   return "";
 }
 
+function wrapHighlight(cat, html) {
+  return cat.highlight ? `<div class="cat-highlight">${html}</div>` : html;
+}
+
 function buildCategoryHtml(cat, lang) {
   let html = buildCategoryTitleHtml(cat, lang);
   cat.items.forEach(it => { html += buildItemHtml(it, lang); });
   html += buildCategoryNoteHtml(cat, lang);
-  return html;
+  return wrapHighlight(cat, html);
 }
 
 /**
@@ -1784,8 +1831,9 @@ function buildCategoryHtml(cat, lang) {
  * page that already has other content above it).
  */
 function splitCatAcrossPages(cat, lang, pageAvailPx, firstAvailPx) {
+  // Рамка добавляет высоту (поля + border) каждому куску — считаем её как часть «заголовка».
   const titleHtml = buildCategoryTitleHtml(cat, lang);
-  const titleH = measureHtml(titleHtml);
+  const titleH = measureHtml(wrapHighlight(cat, titleHtml));
   const noteHtml = buildCategoryNoteHtml(cat, lang);
   const noteH = noteHtml ? measureHtml(noteHtml) : 0;
 
@@ -1801,7 +1849,7 @@ function splitCatAcrossPages(cat, lang, pageAvailPx, firstAvailPx) {
     const extraForNote = isLast ? noteH : 0;
 
     if (currentH + itemH + extraForNote > avail && currentItems.length > 0) {
-      partials.push({ title: cat.title, items: currentItems, noteKey: null });
+      partials.push({ title: cat.title, items: currentItems, noteKey: null, highlight: cat.highlight });
       currentItems = [];
       currentH = titleH;
       isFirst = false;
@@ -1811,7 +1859,7 @@ function splitCatAcrossPages(cat, lang, pageAvailPx, firstAvailPx) {
   });
 
   if (currentItems.length > 0) {
-    partials.push({ title: cat.title, items: currentItems, noteKey: cat.noteKey });
+    partials.push({ title: cat.title, items: currentItems, noteKey: cat.noteKey, highlight: cat.highlight });
   }
   return partials;
 }
@@ -1919,11 +1967,11 @@ function buildPage(menuKey, lang, cats, pageIdx, includePromo) {
 
   let categoriesHtml = "";
   cats.forEach((cat, ci) => {
-    categoriesHtml += `<div class="category-title">${esc(cat.title[lang] || cat.title.ru)}</div>`;
+    let catHtml = `<div class="category-title">${esc(cat.title[lang] || cat.title.ru)}</div>`;
     cat.items.forEach(it => {
       const name = it[lang] || it.ru || "";
       const priceText = it.price ? (it.price + " " + cfg.currency) : "";
-      categoriesHtml += `
+      catHtml += `
         <div class="m-item">
           <div class="name"><span class="txt">${esc(name)}</span><span class="dots"></span></div>
           <div class="portion">${handwrite(it.portion)}</div>
@@ -1931,7 +1979,8 @@ function buildPage(menuKey, lang, cats, pageIdx, includePromo) {
         </div>`;
     });
     // optional note (for infusions) comes AFTER items so reader sees prices first, then the flavour assortment
-    categoriesHtml += buildCategoryNoteHtml(cat, lang);
+    catHtml += buildCategoryNoteHtml(cat, lang);
+    categoriesHtml += wrapHighlight(cat, catHtml);
   });
   // Promo block goes at the bottom of the first bar page, below the infusion assortment
   if (includePromo && cfg.promo && cfg.promo.enabled) {
