@@ -567,6 +567,28 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     <div class="status" id="sync-status"></div>
   </div>
 
+  <div class="block">
+    <h2>Poster POS — импорт меню</h2>
+    <div class="row">
+      <label>Worker URL</label>
+      <input id="cfg-poster-worker" placeholder="https://poster-proxy.xxx.workers.dev">
+    </div>
+    <div class="row">
+      <label>Режим</label>
+      <select id="cfg-poster-mode" style="flex:1">
+        <option value="merge">Дозаполнить: новые добавить, имеющиеся не трогать</option>
+        <option value="overwrite-ru">Обновить RU-названия и цены, EN/GE не трогать</option>
+        <option value="replace">Полная замена (⚠ затрёт все переводы EN/GE)</option>
+      </select>
+    </div>
+    <p class="note">Токен Poster живёт как <b>секрет внутри Worker'a</b>, не в браузере. В файле <code>cloudflare-worker-poster-proxy.js</code> — пошаговая инструкция деплоя (5 минут).</p>
+    <div class="toolbar">
+      <button id="btn-poster-test">Тест подключения</button>
+      <button id="btn-poster-sync" class="primary">↻ Синхронизировать с Poster</button>
+    </div>
+    <div class="status" id="poster-status"></div>
+  </div>
+
 <div class="block">
     <h2>Имитация почерка</h2>
     <div class="row"><label>Цвет чернил</label><input id="cfg-ink" type="color" value="#1a3a8a" style="max-width:60px"></div>
@@ -678,7 +700,7 @@ const DEFAULTS = {
     apikeys: { anthropic: "", openai: "" },
     model: "claude-haiku-4-5-20251001",
     stamp: { dataUrl: "", mime: "", sizeMm: 38, rotation: -8, opacity: 85, tint: false },
-    poster: { token: "", host: "joinposter.com", proxy: "", mode: "merge" },
+    poster: { workerUrl: "", mode: "merge" },
     ministry: {
       ru: ["ГРУЗИЯ", "МИНИСТЕРСТВО ВИНОВОДОЧНЫХ ДЕЛ", "РЕСТОРАН WELCOME DRINK"],
       en: ["GEORGIA", "MINISTRY OF WINE & VODKA AFFAIRS", "RESTAURANT WELCOME DRINK"],
@@ -1120,8 +1142,13 @@ function renderConfig() {
   $("cfg-stamp-tint").checked = !!state.config.stamp.tint;
   renderStampPreview();
 
-  // poster (UI removed; state kept for backward compatibility, no longer wired)
-  if (!state.config.poster) state.config.poster = { token: "", host: "joinposter.com", proxy: "", mode: "merge" };
+  // poster — sync via Cloudflare Worker (token lives as Worker secret, not in browser)
+  if (!state.config.poster) state.config.poster = { workerUrl: "", mode: "merge" };
+  // migrate legacy schema: drop token/host/proxy, add workerUrl
+  if (!("workerUrl" in state.config.poster)) state.config.poster.workerUrl = "";
+  if (!state.config.poster.mode) state.config.poster.mode = "merge";
+  $("cfg-poster-worker").value = state.config.poster.workerUrl || "";
+  $("cfg-poster-mode").value   = state.config.poster.mode || "merge";
 
   // ministry + titles
   ["ru","en","ge"].forEach(l => {
@@ -2112,23 +2139,24 @@ async function translateOne(ruText) {
 /* ==========================================================================
    POSTER POS SYNC
    ========================================================================== */
+/**
+ * Sync goes through a Cloudflare Worker that holds the Poster token as a
+ * server-side secret. The browser never sees the token. Configured URL points
+ * to the Worker (e.g. https://poster-proxy.username.workers.dev).
+ */
 function posterUrl(method) {
-  // Clean up host: strip protocol, trailing slash, leading/trailing whitespace, any path.
-  const raw = (state.config.poster.host || "joinposter.com").trim();
-  const host = raw
-    .replace(/^https?:\/\//i, "")
-    .replace(/\/.*$/, "")           // drop anything after first /
-    .replace(/\/$/, "");
-  const token = encodeURIComponent(state.config.poster.token || "");
-  return `https://${host}/api/${method}?token=${token}&format=json`;
+  const workerUrl = (state.config.poster.workerUrl || "").trim().replace(/\/$/, "");
+  if (!workerUrl) throw new Error("Не задан Worker URL для Poster (см. блок Poster в редакторе)");
+  return `${workerUrl}/?method=${encodeURIComponent(method)}`;
 }
 
 async function posterFetch(method) {
   const url = posterUrl(method);
-  const proxy = (state.config.poster.proxy || "").trim();
-  const finalUrl = proxy ? (proxy + encodeURIComponent(url)) : url;
-  const r = await fetch(finalUrl);
-  if (!r.ok) throw new Error(`Poster ${method} HTTP ${r.status}`);
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(`Poster ${method} HTTP ${r.status}: ${t.slice(0, 200)}`);
+  }
   const j = await r.json();
   if (j.error) throw new Error(`Poster ${method}: ${j.error.message || JSON.stringify(j.error)}`);
   return j.response || [];
@@ -2137,7 +2165,9 @@ async function posterFetch(method) {
 async function posterTest() {
   const s = $("poster-status");
   s.className = "status"; s.textContent = "Проверяю...";
-  if (!state.config.poster.token) { s.className="status err"; s.textContent="Введите токен"; return; }
+  if (!state.config.poster.workerUrl) {
+    s.className = "status err"; s.textContent = "Введите Worker URL"; return;
+  }
   try {
     const cats = await posterFetch("menu.getCategories");
     const prods = await posterFetch("menu.getProducts");
@@ -2190,14 +2220,14 @@ function extractPrice(p) {
 async function posterSync() {
   const s = $("poster-status");
   s.className = "status"; s.textContent = "Синхронизирую...";
-  if (!state.config.poster.token) { s.className="status err"; s.textContent="Введите токен"; return; }
+  if (!state.config.poster.workerUrl) { s.className="status err"; s.textContent="Введите Worker URL"; return; }
   let cats, prods;
   try {
     cats = await posterFetch("menu.getCategories");
     prods = await posterFetch("menu.getProducts");
   } catch (e) {
     s.className = "status err";
-    s.textContent = "Ошибка: " + e.message + (e.message.includes("Failed to fetch") ? " (CORS — укажите proxy)" : "");
+    s.textContent = "Ошибка: " + e.message;
     return;
   }
 
@@ -2486,7 +2516,31 @@ function wire() {
     saveState(); rerenderPreview();
   });
 
-  // poster integration removed from UI — bindings deleted
+  // poster sync bindings
+  const posterWorker = $("cfg-poster-worker");
+  if (posterWorker) {
+    posterWorker.addEventListener("input", e => {
+      state.config.poster.workerUrl = e.target.value.trim();
+      saveState();
+    });
+  }
+  const posterMode = $("cfg-poster-mode");
+  if (posterMode) {
+    posterMode.addEventListener("change", e => {
+      state.config.poster.mode = e.target.value;
+      saveState();
+    });
+  }
+  const btnPosterTest = $("btn-poster-test");
+  if (btnPosterTest) btnPosterTest.addEventListener("click", posterTest);
+  const btnPosterSync = $("btn-poster-sync");
+  if (btnPosterSync) {
+    btnPosterSync.addEventListener("click", () => {
+      const mode = state.config.poster.mode;
+      if (mode === "replace" && !confirm("⚠ Полная замена сотрёт все переводы EN/GE. Продолжить?")) return;
+      posterSync();
+    });
+  }
 
   // infusion sections editor
   const addBtn = $("btn-add-infusion-section");
